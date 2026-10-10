@@ -32,6 +32,62 @@ body {
   }
 }
 
+/* Floating animation for mascot */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+.mascot-svg {
+  animation: float 4.5s ease-in-out infinite;
+}
+
+/* Floating animation for code ghost texts */
+@keyframes ghost-drift-a {
+  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.22; }
+  50% { transform: translateY(-8px) rotate(-1deg); opacity: 0.38; }
+}
+
+@keyframes ghost-drift-b {
+  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.22; }
+  50% { transform: translateY(8px) rotate(1deg); opacity: 0.38; }
+}
+
+.code-ghost-a {
+  animation: ghost-drift-a 7s ease-in-out infinite;
+}
+
+.code-ghost-b {
+  animation: ghost-drift-b 8s ease-in-out infinite;
+}
+
+.code-ghost-c {
+  animation: ghost-drift-a 9s ease-in-out infinite;
+}
+
+/* Pulse glow for gold badge and accents */
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+.pulse-badge {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+/* Interactive Card Hover Lifts */
+.clip-card {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.clip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 38px -18px rgba(0, 0, 0, 0.45);
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 7px;

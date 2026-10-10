@@ -205,14 +205,14 @@ export default function Home() {
         CLIPJAX
       </div>
 
-      {/* Code Ghost Decorative Snippets */}
-      <div aria-hidden="true" className="absolute left-5 top-24 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
+      {/* Code Ghost Decorative Snippets with floating drift */}
+      <div aria-hidden="true" className="code-ghost-a absolute left-5 top-24 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
         &lt;input type=&quot;url&quot; id=&quot;yt&quot;&gt;
       </div>
-      <div aria-hidden="true" className="absolute left-5 bottom-20 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
+      <div aria-hidden="true" className="code-ghost-b absolute left-5 bottom-20 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
         function saveVideo() &#123;
       </div>
-      <div aria-hidden="true" className="absolute right-64 top-24 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
+      <div aria-hidden="true" className="code-ghost-c absolute right-64 top-24 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
         format: &quot;mp4&quot; | &quot;mp3&quot;
       </div>
 
@@ -229,7 +229,7 @@ export default function Home() {
           <a href="#contact" className="px-5 py-2.5 rounded-full text-[15px] font-medium hover:bg-white/20 text-white transition-colors">Contact</a>
         </div>
 
-        <a className="flex items-center gap-2.5 py-1.5 pl-4 pr-2 rounded-full bg-white/[0.16] border border-white/[0.35] text-[14px] font-medium text-white shadow-sm" href="#">
+        <a className="flex items-center gap-2.5 py-1.5 pl-4 pr-2 rounded-full bg-white/[0.16] border border-white/[0.35] text-[14px] font-medium text-white shadow-sm hover:bg-white/25 transition-all" href="#">
           Sign in 
           <span className="w-8 h-8 rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold text-[14px]">
             C
@@ -243,8 +243,8 @@ export default function Home() {
         {/* Left Column: Copy & Downloader Input */}
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
           
-          {/* Badge */}
-          <div className="inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.16] border border-white/[0.35] mb-5 shadow-sm">
+          {/* Badge with pulse */}
+          <div className="pulse-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.16] border border-white/[0.35] mb-5 shadow-sm">
             <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
               ✓
             </i>
@@ -295,7 +295,7 @@ export default function Home() {
             viewBox="0 0 320 400" 
             role="img" 
             aria-label="Green ninja mascot"
-            className="w-[min(100%,340px)] h-auto drop-shadow-[0_30px_24px_rgba(10,40,20,0.45)] animate-[float_5s_ease-in-out_infinite]"
+            className="mascot-svg w-[min(100%,340px)] h-auto drop-shadow-[0_30px_24px_rgba(10,40,20,0.45)]"
           >
             {/* body */}
             <ellipse cx="160" cy="385" rx="90" ry="10" fill="rgba(0,0,0,.18)"/>
@@ -333,7 +333,7 @@ export default function Home() {
         <div className="flex flex-col gap-3.5 w-full" id="formats">
           
           {/* Card 1: MP4 Video */}
-          <article className="p-4 rounded-[20px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
+          <article className="clip-card p-4 rounded-[20px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
             <h3 className="text-[17px] font-bold">MP4 Video</h3>
             <p className="text-[12.5px] leading-snug text-[#53665a] mt-1">Up to 1080p. Plays on every phone and TV.</p>
             <div className="my-3 h-20 rounded-xl bg-gradient-to-tr from-[#ffb347] to-[#f2761f] grid place-items-center text-[38px] font-extrabold text-[#2b1a05]">
@@ -353,7 +353,7 @@ export default function Home() {
           </article>
 
           {/* Card 2: MP3 Audio */}
-          <article className="p-4 rounded-[20px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
+          <article className="clip-card p-4 rounded-[20px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
             <h3 className="text-[17px] font-bold">MP3 Audio</h3>
             <p className="text-[12.5px] leading-snug text-[#53665a] mt-1">Keep only the sound. Great for music &amp; podcasts.</p>
             <div className="my-3 h-20 rounded-xl bg-gradient-to-tr from-[#27312b] to-[#0e1511] grid place-items-center text-[38px] font-extrabold text-[#7fc79a]">
