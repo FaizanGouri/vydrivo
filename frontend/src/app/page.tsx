@@ -11,12 +11,16 @@ import {
   CheckCircle2, 
   Loader2, 
   Clipboard, 
-  ArrowRight,
+  ArrowUpRight,
   Clock,
   Eye,
   User,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Zap,
+  Layers,
+  Sliders,
+  Check
 } from "lucide-react";
 
 interface MediaOption {
@@ -52,6 +56,18 @@ interface JobStatus {
 
 const BACKEND_URL = "http://127.0.0.1:8000/api/v1";
 
+const TICKER_ITEMS = [
+  "4K Ultra HD",
+  "1080p 60FPS",
+  "YouTube Shorts",
+  "High Speed FFmpeg",
+  "Lossless MP3",
+  "Zero Ads",
+  "Instant Conversion",
+  "Audio Extraction",
+  "Private & Secure"
+];
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,6 +82,7 @@ export default function Home() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [downloading, setDownloading] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const inputSectionRef = useRef<HTMLDivElement | null>(null);
 
   // Clean up SSE on unmount
   useEffect(() => {
@@ -75,6 +92,10 @@ export default function Home() {
       }
     };
   }, []);
+
+  const scrollToInput = () => {
+    inputSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handlePaste = async () => {
     try {
@@ -180,7 +201,6 @@ export default function Home() {
       };
 
       sse.onerror = () => {
-        // SSE disconnected or complete
         sse.close();
       };
     } catch (err: unknown) {
@@ -207,315 +227,505 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0d0f15] text-slate-100 flex flex-col justify-between selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen bg-[#08090d] text-slate-100 flex flex-col justify-between selection:bg-rose-500 selection:text-white relative overflow-hidden">
+      {/* Background Ambient Glow Orbs */}
+      <div className="glow-orb-purple -top-40 -left-40 w-[600px] h-[600px] opacity-75"></div>
+      <div className="glow-orb-orange -top-20 -right-20 w-[550px] h-[550px] opacity-60"></div>
+      <div className="glow-orb-cyan top-[45%] left-[25%] w-[700px] h-[700px] opacity-40"></div>
+
       {/* Top Navbar */}
-      <header className="border-b border-slate-800/80 bg-[#12151f]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-              <Download className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
-                TubeFetch <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-rose-400 border border-rose-500/20 font-medium">PRO</span>
+      <header className="border-b border-white/[0.07] bg-[#090b10]/70 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="text-xl font-black tracking-tight flex items-center gap-1 text-white">
+              <span className="text-amber-500">WE</span>
+              <span>03</span>
+              <span className="text-rose-500 text-xs px-2 py-0.5 ml-2 font-mono uppercase rounded-full border border-rose-500/30 bg-rose-500/10 font-bold">
+                STUDIO
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Server Ready &bull; Fast Engine
-          </div>
+
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
+            <a href="#features" className="hover:text-white transition-colors">Products</a>
+            <a href="#services" className="hover:text-white transition-colors">Solutions</a>
+            <a href="#stats" className="hover:text-white transition-colors">Customer</a>
+            <a href="#formats" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#about" className="hover:text-white transition-colors">Resources</a>
+          </nav>
+
+          {/* Action CTA */}
+          <button 
+            onClick={scrollToInput}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-wider uppercase bg-white/10 hover:bg-white/15 text-white border border-white/15 transition-all shadow-lg hover:border-white/30"
+          >
+            Get Started
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <div className="max-w-4xl mx-auto px-4 py-12 w-full flex-1">
-        {/* Hero Section */}
-        <div className="text-center space-y-3 mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            Supports YouTube Videos & Shorts in 1080p, 720p, 480p & MP3
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
-            YouTube Video &amp; Shorts <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-red-500 via-rose-500 to-amber-500 bg-clip-text text-transparent">
-              High Quality Downloader
+      {/* HERO SECTION */}
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-16 pb-20 w-full flex flex-col items-center">
+        {/* Main Title */}
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-white leading-none">
+            Media Studio{" "}
+            <span className="block mt-2 bg-gradient-to-r from-rose-500 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+              Agency.
             </span>
           </h1>
-          <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto">
-            Paste any YouTube video or Shorts link below to fetch real video resolutions, convert to MP3, and download directly.
+          <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto font-light leading-relaxed">
+            Next-gen decentralized media processing. Better data leads to higher performance formats. Zero compression loss and faster delivery.
           </p>
         </div>
 
-        {/* Input Card */}
-        <div className="bg-[#151824] border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-2xl relative">
-          <form onSubmit={handleInspect} className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="Paste YouTube or Shorts URL here (e.g. https://youtu.be/...)"
-                className="w-full bg-[#0d0f15] border border-slate-700/80 rounded-xl px-4 py-3.5 pl-4 pr-24 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
-              />
-              <button
-                type="button"
-                onClick={handlePaste}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium flex items-center gap-1.5 transition-colors border border-slate-700/50"
-              >
-                <Clipboard className="w-3.5 h-3.5" />
-                Paste
-              </button>
+        {/* Hero Interactive Grid & Badges */}
+        <div className="w-full mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Badges */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+            <div className="glass-card glass-card-hover rounded-2xl p-5 border border-white/[0.08]">
+              <span className="text-2xl font-black text-white block">240+</span>
+              <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-400">Supported Formats</span>
             </div>
-            <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 transition-all"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  Fetch Video
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Error Banner */}
-          {error && (
-            <div className="mt-4 p-3.5 rounded-xl bg-red-950/40 border border-red-800/60 text-red-200 text-xs sm:text-sm flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <span>{error}</span>
+            <div className="glass-card glass-card-hover rounded-2xl p-5 border border-white/[0.08]">
+              <span className="text-2xl font-black text-rose-400 block">92%</span>
+              <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-400">Faster FFmpeg Pipeline</span>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Video Preview & Options Card */}
-        {videoData && (
-          <div className="mt-8 bg-[#151824] border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Header info */}
-            <div className="flex flex-col md:flex-row gap-5 items-start">
-              {/* Thumbnail */}
-              <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shrink-0 w-full md:w-64 aspect-video">
-                {videoData.thumbnail ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={videoData.thumbnail}
-                    alt={videoData.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-600">
-                    <Video className="w-8 h-8" />
+          {/* Central Downloader Card */}
+          <div ref={inputSectionRef} className="lg:col-span-6 w-full">
+            <div className="relative p-1 rounded-3xl bg-gradient-to-b from-white/15 via-white/5 to-transparent shadow-2xl">
+              <div className="glass-card rounded-[22px] p-6 sm:p-8 backdrop-blur-2xl bg-[#11131c]/90 border border-white/10 shadow-2xl">
+                
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">Fast Stream Engine</span>
                   </div>
-                )}
-                {videoData.duration_formatted && (
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[11px] font-mono text-white flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {videoData.duration_formatted}
-                  </div>
-                )}
-                {videoData.is_short && (
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-red-600 text-[10px] font-bold text-white tracking-wider uppercase">
-                    Shorts
-                  </div>
-                )}
-              </div>
-
-              {/* Title & Metadata */}
-              <div className="flex-1 space-y-2.5">
-                <h2 className="text-base sm:text-lg font-bold text-white leading-snug line-clamp-2">
-                  {videoData.title}
-                </h2>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                  {videoData.uploader && (
-                    <span className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-slate-500" />
-                      {videoData.uploader}
-                    </span>
-                  )}
-                  {videoData.view_count && (
-                    <span className="flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-slate-500" />
-                      {formatViews(videoData.view_count)}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Verified Stream
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400">
+                    v2.4 Online
                   </span>
                 </div>
+
+                {/* Form */}
+                <form onSubmit={handleInspect} className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="Paste YouTube or Shorts URL here..."
+                      className="w-full bg-[#08090e] border border-white/15 rounded-2xl px-5 py-4 pl-5 pr-28 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all shadow-inner"
+                    />
+                    <button
+                      type="button"
+                      onClick={handlePaste}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white font-medium flex items-center gap-1.5 transition-colors border border-white/15 cursor-pointer"
+                    >
+                      <Clipboard className="w-3.5 h-3.5 text-amber-400" />
+                      Paste
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || !url.trim()}
+                    className="w-full py-4 rounded-2xl bg-white text-black hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-2xl shadow-white/20 transition-all cursor-pointer"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                        Inspecting Streams...
+                      </>
+                    ) : (
+                      <>
+                        Inspect &amp; Fetch Video
+                        <ArrowUpRight className="w-4 h-4 text-black" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Error Banner */}
+                {error && (
+                  <div className="mt-4 p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span>{error}</span>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Quality and Format Selector */}
-            <div className="border-t border-slate-800/80 pt-5 space-y-3">
-              <label className="text-xs font-semibold tracking-wider uppercase text-slate-400">
-                Choose Format &amp; Quality:
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                {videoData.options.map((opt, idx) => {
-                  const isSelected =
-                    selectedOption?.quality === opt.quality &&
-                    selectedOption?.type === opt.type;
+          {/* Right Floating Card */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+            <div className="glass-card glass-card-hover rounded-2xl p-6 border border-white/[0.08] space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Better audio-visual data leads to high-resolution outputs. Performant lossless models lead to faster download.
+              </p>
+              <button 
+                onClick={scrollToInput}
+                className="w-full py-2.5 rounded-full bg-white text-black font-extrabold text-xs tracking-wider uppercase hover:bg-slate-200 transition-all shadow-md"
+              >
+                Get Started
+              </button>
+            </div>
+          </div>
+        </div>
 
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedOption(opt)}
-                      disabled={downloading}
-                      className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                        isSelected
-                          ? "bg-rose-500/10 border-rose-500 text-white shadow-sm shadow-rose-500/10"
-                          : "bg-[#0d0f15]/70 border-slate-800/80 text-slate-300 hover:border-slate-700 hover:bg-[#10131d]"
-                      } ${downloading ? "opacity-60 cursor-not-allowed" : ""}`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                            opt.type === "audio"
-                              ? "bg-amber-500/10 text-amber-400"
-                              : "bg-red-500/10 text-rose-400"
-                          }`}
-                        >
-                          {opt.type === "audio" ? (
-                            <Music className="w-3.5 h-3.5" />
-                          ) : (
-                            <Play className="w-3.5 h-3.5" />
-                          )}
+        {/* Video Preview & Download Card (Appears after inspect) */}
+        {videoData && (
+          <div className="w-full max-w-4xl mt-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/15 shadow-2xl space-y-6">
+              
+              {/* Thumbnail & Metadata */}
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                <div className="relative rounded-2xl overflow-hidden bg-black/60 border border-white/10 shrink-0 w-full md:w-72 aspect-video shadow-xl">
+                  {videoData.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={videoData.thumbnail}
+                      alt={videoData.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-600">
+                      <Video className="w-10 h-10" />
+                    </div>
+                  )}
+                  {videoData.duration_formatted && (
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono text-white flex items-center gap-1 border border-white/10">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      {videoData.duration_formatted}
+                    </div>
+                  )}
+                  {videoData.is_short && (
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md bg-rose-600 text-[10px] font-bold text-white tracking-wider uppercase shadow-lg">
+                      Shorts
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-3">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white leading-snug line-clamp-2">
+                    {videoData.title}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                    {videoData.uploader && (
+                      <span className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-slate-500" />
+                        {videoData.uploader}
+                      </span>
+                    )}
+                    {videoData.view_count && (
+                      <span className="flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-slate-500" />
+                        {formatViews(videoData.view_count)}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      Streams Verified
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quality & Format Selection */}
+              <div className="border-t border-white/10 pt-6 space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Select Format &amp; Resolution:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {videoData.options.map((opt, idx) => {
+                    const isSelected =
+                      selectedOption?.quality === opt.quality &&
+                      selectedOption?.type === opt.type;
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedOption(opt)}
+                        disabled={downloading}
+                        className={`flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all ${
+                          isSelected
+                            ? "bg-rose-500/15 border-rose-500 text-white shadow-lg shadow-rose-500/10"
+                            : "bg-white/[0.03] border-white/10 text-slate-300 hover:border-white/20 hover:bg-white/[0.06]"
+                        } ${downloading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                              opt.type === "audio"
+                                ? "bg-amber-500/20 text-amber-400"
+                                : "bg-rose-500/20 text-rose-400"
+                            }`}
+                          >
+                            {opt.type === "audio" ? (
+                              <Music className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white">{opt.label}</p>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">
+                              {opt.format}
+                            </p>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-rose-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action / Progress View */}
+              <div className="border-t border-white/10 pt-6">
+                {!jobStatus || jobStatus.status === "failed" ? (
+                  <button
+                    type="button"
+                    onClick={handleStartDownload}
+                    disabled={downloading || !selectedOption}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:opacity-95 disabled:opacity-40 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-2xl shadow-rose-500/30 transition-all cursor-pointer"
+                  >
+                    {downloading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Merging &amp; Encoding Streams...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        Download {selectedOption?.label}
+                      </>
+                    )}
+                  </button>
+                ) : jobStatus.status === "completed" ? (
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                          <CheckCircle2 className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold">{opt.label}</p>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">
-                            {opt.format}
+                          <h4 className="text-sm font-bold text-white">
+                            File Encoded &amp; Ready!
+                          </h4>
+                          <p className="text-xs text-slate-400">
+                            {jobStatus.filename} &bull; {formatFileSize(jobStatus.file_size)}
                           </p>
                         </div>
                       </div>
-                      {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-rose-500 shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Action & Progress section */}
-            <div className="border-t border-slate-800/80 pt-5 space-y-4">
-              {!jobStatus || jobStatus.status === "failed" ? (
-                <button
-                  type="button"
-                  onClick={handleStartDownload}
-                  disabled={downloading || !selectedOption}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:opacity-95 disabled:opacity-50 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-rose-600/20 transition-all cursor-pointer"
-                >
-                  {downloading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Preparing Media...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5" />
-                      Download {selectedOption?.label}
-                    </>
-                  )}
-                </button>
-              ) : jobStatus.status === "completed" ? (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/50 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                        <CheckCircle2 className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-white">
-                          File Ready for Download!
-                        </h4>
-                        <p className="text-xs text-slate-400">
-                          {jobStatus.filename} &bull; {formatFileSize(jobStatus.file_size)}
-                        </p>
-                      </div>
+                      <a
+                        href={`${BACKEND_URL}/jobs/${activeJobId}/download`}
+                        download
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/30 transition-all"
+                      >
+                        <Download className="w-4 h-4 text-black" />
+                        Save File
+                      </a>
                     </div>
-                    <a
-                      href={`${BACKEND_URL}/jobs/${activeJobId}/download`}
-                      download
-                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJobStatus(null);
+                        setActiveJobId(null);
+                      }}
+                      className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 mx-auto transition-colors"
                     >
-                      <Download className="w-4 h-4" />
-                      Save File
-                    </a>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Convert another resolution
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setJobStatus(null);
-                      setActiveJobId(null);
-                    }}
-                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 mx-auto"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Download another resolution or audio
-                  </button>
-                </div>
-              ) : (
-                /* In Progress */
-                <div className="p-4 rounded-xl bg-[#0d0f15] border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-200 flex items-center gap-2">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
-                      Processing &amp; Merging Streams...
-                    </span>
-                    <span className="font-mono text-rose-400 font-bold">
-                      {jobStatus.progress}%
-                    </span>
-                  </div>
+                ) : (
+                  /* Live Progress Bar */
+                  <div className="p-5 rounded-2xl bg-black/60 border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-200 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                        Processing &amp; Merging Media Streams...
+                      </span>
+                      <span className="font-mono text-amber-400 font-bold">
+                        {jobStatus.progress}%
+                      </span>
+                    </div>
 
-                  {/* Progress bar */}
-                  <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-red-600 to-rose-500 transition-all duration-300 ease-out"
-                      style={{ width: `${Math.max(jobStatus.progress, 5)}%` }}
-                    />
-                  </div>
+                    <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-400 transition-all duration-300 ease-out"
+                        style={{ width: `${Math.max(jobStatus.progress, 5)}%` }}
+                      />
+                    </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                    <span>Speed: {jobStatus.speed || "Calculating..."}</span>
-                    <span>ETA: {jobStatus.eta || "Few seconds"}</span>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                      <span>Speed: {jobStatus.speed || "Calculating..."}</span>
+                      <span>ETA: {jobStatus.eta || "Few seconds"}</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
+      </section>
 
-        {/* Feature Highlights Footer */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 text-center">
-          <div className="p-4 rounded-xl bg-[#12151f]/60 border border-slate-800/60 space-y-1.5">
-            <h4 className="text-sm font-semibold text-slate-200">1080p Full HD</h4>
-            <p className="text-xs text-slate-500">Audio and video merged seamlessly with FFmpeg lossless quality.</p>
-          </div>
-          <div className="p-4 rounded-xl bg-[#12151f]/60 border border-slate-800/60 space-y-1.5">
-            <h4 className="text-sm font-semibold text-slate-200">Shorts Compatible</h4>
-            <p className="text-xs text-slate-500">Fast extraction for both regular YouTube and vertical Shorts.</p>
-          </div>
-          <div className="p-4 rounded-xl bg-[#12151f]/60 border border-slate-800/60 space-y-1.5">
-            <h4 className="text-sm font-semibold text-slate-200">Real-time Progress</h4>
-            <p className="text-xs text-slate-500">Live Server-Sent Events with actual download percentages.</p>
-          </div>
+      {/* HORIZONTAL MARQUEE TICKER (Matching Reference Image) */}
+      <div className="w-full border-y border-white/[0.08] bg-[#0c0d14]/70 backdrop-blur-md py-4 overflow-hidden relative">
+        <div className="animate-marquee whitespace-nowrap flex items-center text-xs font-bold uppercase tracking-widest text-slate-300">
+          {[...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS].map((item, idx) => (
+            <span key={idx} className="flex items-center mx-6">
+              <span className="text-amber-400 mr-4 font-normal">✦</span>
+              {item}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
-        <p>&copy; 2026 TubeFetch &bull; Built for personal educational media management.</p>
+      {/* SECTION: OUR SERVICES / CAPABILITIES */}
+      <section id="services" className="max-w-7xl mx-auto px-6 py-24 w-full">
+        <div className="text-center mb-16 space-y-3">
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+            Our Services
+          </h2>
+          <p className="text-slate-400 text-sm max-w-md mx-auto">
+            High performance pipelines designed for content creators, archivists and power users.
+          </p>
+        </div>
+
+        {/* Feature Showcase Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          {/* Left Text / Bullets */}
+          <div className="lg:col-span-6 space-y-6">
+            <h3 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Lossless Media Processing
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Hands-on media workflow via real-time processing engine. High-bitrate audio stream extraction, multi-resolution adaptive downloads, and zero loss encoding.
+            </p>
+
+            <ul className="space-y-3 pt-2">
+              {[
+                "1080p & 4K High Resolution Video Streams",
+                "Crystal Clear 320 kbps MP3 Audio Extraction",
+                "Full YouTube Shorts & Mobile Aspect Compatibility",
+                "Instant Server-Sent Progress Event Streaming"
+              ].map((bullet, idx) => (
+                <li key={idx} className="flex items-center gap-3 text-sm text-slate-200">
+                  <div className="w-5 h-5 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                    <Check className="w-3 h-3" />
+                  </div>
+                  {bullet}
+                </li>
+              ))}
+            </ul>
+
+            <div className="pt-4">
+              <button 
+                onClick={scrollToInput}
+                className="px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 hover:bg-white/15 text-white border border-white/20 transition-all flex items-center gap-2"
+              >
+                Learn More
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Right Visual UI Mockup Card (Like Screenshot) */}
+          <div className="lg:col-span-6">
+            <div className="relative p-1 rounded-3xl bg-gradient-to-tr from-rose-500/30 via-amber-500/20 to-purple-500/30">
+              <div className="glass-card rounded-[22px] p-8 bg-[#0e1017]/95 border border-white/15 shadow-2xl space-y-6">
+                
+                {/* Simulated UI Window */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-rose-500"></span>
+                    <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                    <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                  </div>
+                  <span className="text-xs font-mono text-slate-400">pipeline://render-engine</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 space-y-2">
+                    <Zap className="w-5 h-5 text-amber-400" />
+                    <h5 className="text-xs font-bold text-white uppercase">Fast Encoding</h5>
+                    <p className="text-[11px] text-slate-400">FFmpeg 9.0 multi-threaded video stream multiplexing.</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 space-y-2">
+                    <Layers className="w-5 h-5 text-rose-400" />
+                    <h5 className="text-xs font-bold text-white uppercase">Multi-Format</h5>
+                    <p className="text-[11px] text-slate-400">Dynamic format mapping for both video and audio.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-transparent border border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Sliders className="w-5 h-5 text-rose-400" />
+                    <div>
+                      <p className="text-xs font-bold text-white">Dynamic Stream Bitrate</p>
+                      <p className="text-[10px] text-slate-400 font-mono">Max Quality: 320 kbps / 60 FPS</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-black text-emerald-400">ACTIVE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* METRICS & STATS SECTION (Matching Reference Image) */}
+      <section id="stats" className="border-t border-white/[0.07] bg-[#0a0c12]/80 backdrop-blur-xl py-16">
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="space-y-1">
+            <h4 className="text-3xl sm:text-5xl font-black text-white tracking-tight">5M+</h4>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Processed Media</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-3xl sm:text-5xl font-black text-white tracking-tight">450M+</h4>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Bitrate Streamed</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-3xl sm:text-5xl font-black text-rose-400 tracking-tight">99.9%</h4>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Uptime Rate</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-3xl sm:text-5xl font-black text-amber-400 tracking-tight">0.8s</h4>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Avg Stream Fetch</p>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS / HAPPY USERS HEADER */}
+      <section className="py-20 text-center space-y-4">
+        <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Our Happy Customers
+        </h3>
+        <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+          Trusted by video editors, researchers, educators, and creators worldwide.
+        </p>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-white/[0.08] bg-[#07080c] py-8 text-center text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>&copy; 2026 WE03 Studio &bull; Built for high-speed media conversion.</p>
+          <div className="flex gap-6 text-slate-400">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">API</a>
+          </div>
+        </div>
       </footer>
-    </main>
+    </div>
   );
 }
