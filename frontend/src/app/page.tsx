@@ -68,12 +68,16 @@ export default function Home() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [downloading, setDownloading] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clean up SSE on unmount
+  // Clean up SSE and polling on unmount
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
     };
   }, []);
@@ -200,9 +204,40 @@ export default function Home() {
       const jobId = json.job_id;
       setActiveJobId(jobId);
 
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
+      const stopAll = () => {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+      };
+
+      stopAll();
+
+      // Fallback polling every 1 second
+      const pollTimer = setInterval(async () => {
+        try {
+          const checkRes = await fetch(`${BACKEND_URL}/jobs/${jobId}`);
+          if (checkRes.ok) {
+            const data: JobStatus = await checkRes.json();
+            setJobStatus(data);
+            if (data.status === "completed") {
+              setDownloading(false);
+              stopAll();
+            } else if (data.status === "failed") {
+              setDownloading(false);
+              setError(data.error || "Download processing failed.");
+              stopAll();
+            }
+          }
+        } catch {
+          // ignore network glitch
+        }
+      }, 1000);
+      pollIntervalRef.current = pollTimer;
 
       const sse = new EventSource(`${BACKEND_URL}/jobs/${jobId}/events`);
       eventSourceRef.current = sse;
@@ -214,11 +249,11 @@ export default function Home() {
 
           if (data.status === "completed") {
             setDownloading(false);
-            sse.close();
+            stopAll();
           } else if (data.status === "failed") {
             setDownloading(false);
             setError(data.error || "Download processing failed.");
-            sse.close();
+            stopAll();
           }
         } catch {
           // heartbeat
@@ -226,7 +261,7 @@ export default function Home() {
       };
 
       sse.onerror = () => {
-        sse.close();
+        // SSE error, keep polling active
       };
     } catch (err: unknown) {
       setDownloading(false);
@@ -571,10 +606,19 @@ export default function Home() {
                 </div>
               ) : (
                 /* In Progress */
-                <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2">
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2 shadow-sm animate-in fade-in">
                   <div className="flex items-center justify-between text-xs font-bold text-[#1f2a24]">
-                    <span>Merging streams...</span>
-                    <span>{jobStatus.progress}%</span>
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#3f8a5a]" />
+                      {jobStatus.progress >= 99
+                        ? "Finalizing file..."
+                        : selectedOption?.type === "audio"
+                        ? "Extracting audio..."
+                        : selectedOption?.type === "image"
+                        ? "Saving image..."
+                        : "Downloading media..."}
+                    </span>
+                    <span>{Math.round(jobStatus.progress)}%</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div
@@ -582,8 +626,9 @@ export default function Home() {
                       style={{ width: `${Math.max(jobStatus.progress, 5)}%` }}
                     />
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono text-center">
-                    {jobStatus.speed || "Processing..."}
+                  <div className="text-[11px] text-slate-500 font-mono text-center flex items-center justify-center gap-2">
+                    {jobStatus.speed ? <span>{jobStatus.speed}</span> : null}
+                    {jobStatus.eta ? <span>• ETA: {jobStatus.eta}</span> : null}
                   </div>
                 </div>
               )}

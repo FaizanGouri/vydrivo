@@ -56,31 +56,31 @@ async def stream_job_events(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found or expired.")
 
-    queue = asyncio.Queue()
-    job.subscribers.append(queue)
-
     async def event_generator():
-        # First send current state immediately
-        yield {"data": json.dumps(job.to_dict())}
-        try:
-            while True:
-                if job.status in ["completed", "failed", "cancelled"]:
-                    break
-                try:
-                    data = await asyncio.wait_for(queue.get(), timeout=15.0)
-                    yield {"data": json.dumps(data)}
-                    if data.get("status") in ["completed", "failed", "cancelled"]:
-                        break
-                except asyncio.TimeoutError:
-                    # Heartbeat
-                    yield {"event": "ping", "data": "keep-alive"}
-        finally:
-            if queue in job.subscribers:
-                job.subscribers.remove(queue)
+        last_progress = -1.0
+        last_status = ""
+        last_speed = ""
+
+        while True:
+            current = job.to_dict()
+            cur_progress = current.get("progress", 0.0)
+            cur_status = current.get("status", "")
+            cur_speed = current.get("speed", "")
+
+            if cur_progress != last_progress or cur_status != last_status or cur_speed != last_speed:
+                last_progress = cur_progress
+                last_status = cur_status
+                last_speed = cur_speed
+                yield {"data": json.dumps(current)}
+
+            if cur_status in ["completed", "failed", "cancelled"]:
+                break
+
+            await asyncio.sleep(0.3)
 
     return EventSourceResponse(event_generator())
 
-@router.get("/jobs/{job_id}/download")
+@router.api_route("/jobs/{job_id}/download", methods=["GET", "HEAD"])
 def download_file(job_id: str):
     job = job_manager.get_job(job_id)
     if not job:
