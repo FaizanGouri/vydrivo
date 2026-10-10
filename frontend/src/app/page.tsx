@@ -205,17 +205,6 @@ export default function Home() {
         VYDRIVO
       </div>
 
-      {/* Code Ghost Decorative Snippets with floating drift */}
-      <div aria-hidden="true" className="code-ghost-a absolute left-5 top-24 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
-        &lt;input type=&quot;url&quot; id=&quot;yt&quot;&gt;
-      </div>
-      <div aria-hidden="true" className="code-ghost-b absolute left-5 bottom-20 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
-        function saveVideo() &#123;
-      </div>
-      <div aria-hidden="true" className="code-ghost-c absolute right-64 top-24 font-mono text-[14px] text-white/20 pointer-events-none whitespace-nowrap hidden lg:block select-none">
-        format: &quot;mp4&quot; | &quot;mp3&quot;
-      </div>
-
       {/* Top Navigation */}
       <nav className="relative z-10 flex items-center justify-between gap-4">
         <a className="font-bold text-[24px] tracking-[-0.01em] text-white" href="#">
