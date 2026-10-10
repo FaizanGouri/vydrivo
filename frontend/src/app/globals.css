@@ -1,128 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #06070b;
-  --foreground: #f8fafc;
+  --page: #b9d7b9;
+  --forest: #3f8a5a;
+  --forest-deep: #2f6e48;
+  --mint: #7fc79a;
+  --ink: #1f2a24;
+  --cream: #f3f8f1;
+  --gold: #f2b632;
+  --glass: rgba(255, 255, 255, 0.16);
+  --glass-line: rgba(255, 255, 255, 0.35);
+  --font: var(--font-outfit), 'Outfit', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  font-family: var(--font);
+  color: #fff;
+  background: linear-gradient(180deg, #a9cfab 0%, #c6e0c4 100%);
   min-height: 100vh;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
+  padding: 24px;
 }
 
-/* Subtle grid mesh background pattern */
-.bg-grid-pattern {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
-
-/* Glassmorphism card styles */
-.glass-panel {
-  background: rgba(15, 17, 26, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.glass-panel-interactive {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.glass-panel-interactive:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-3px);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 30px -10px rgba(139, 92, 246, 0.25);
-}
-
-/* Glowing Border Gradient Effect */
-.gradient-border-wrap {
-  position: relative;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.6), rgba(245, 158, 11, 0.4), rgba(139, 92, 246, 0.6));
-  padding: 1.5px;
-  border-radius: 26px;
-  box-shadow: 0 0 50px -10px rgba(244, 63, 94, 0.25);
-}
-
-/* Ticker marquee animation */
-@keyframes marquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  display: flex;
-  width: 200%;
-  animation: marquee 25s linear infinite;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
-
-/* Floating animation for central graphics & cards */
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(1deg); }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-/* Ambient glow orb animations */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.08); }
-}
-
-.glow-orb-magenta {
-  position: absolute;
-  filter: blur(140px);
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(236, 72, 153, 0.28) 0%, rgba(217, 70, 239, 0.12) 60%, transparent 100%);
-  border-radius: 9999px;
-  animation: pulse-slow 8s ease-in-out infinite;
-}
-
-.glow-orb-amber {
-  position: absolute;
-  filter: blur(140px);
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.24) 0%, rgba(249, 115, 22, 0.1) 60%, transparent 100%);
-  border-radius: 9999px;
-  animation: pulse-slow 10s ease-in-out infinite reverse;
-}
-
-.glow-orb-violet {
-  position: absolute;
-  filter: blur(150px);
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(99, 102, 241, 0.1) 60%, transparent 100%);
-  border-radius: 9999px;
-  animation: pulse-slow 12s ease-in-out infinite;
-}
-
-/* Shimmer scanline effect on buttons */
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-shimmer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-  animation: shimmer 2.5s infinite;
+@media (max-width: 980px) {
+  body {
+    padding: 12px;
+  }
 }
 
 /* Custom scrollbars */
@@ -130,12 +37,9 @@ body {
   width: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #06070b;
+  background: #a9cfab;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f2333;
+  background: #3f8a5a;
   border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #363e59;
 }
