@@ -123,6 +123,31 @@ class JobManager:
             if ffmpeg_path and os.path.exists(ffmpeg_path):
                 ydl_opts['ffmpeg_location'] = ffmpeg_path
 
+            if job.format_type == 'image':
+                # Direct download of post/cover image
+                import urllib.request
+                job.update_progress(10.0, "Fetching image...", "")
+                with yt_dlp.YoutubeDL({'skip_download': True, 'quiet': True}) as ydl:
+                    info = ydl.extract_info(job.url, download=False)
+                    img_url = info.get('thumbnail')
+                    raw_title = info.get('title') or "instagram_image"
+                    clean_title = "".join(c for c in raw_title if c.isalnum() or c in (' ', '_', '-')).strip()[:60]
+                    clean_title = clean_title.replace(' ', '_') or "instagram_image"
+                    out_filename = f"{job.job_id}_{clean_title}.jpg"
+                    out_path = os.path.join(DOWNLOADS_DIR, out_filename)
+                    if not img_url:
+                        raise Exception("Could not find image thumbnail for this post.")
+                    job.update_progress(50.0, "Saving image...", "")
+                    req = urllib.request.Request(img_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
+                        f.write(resp.read())
+                    job.file_path = out_path
+                    job.filename = f"{clean_title}.jpg"
+                    job.file_size = os.path.getsize(out_path)
+                    job.progress = 100.0
+                    job.set_status("completed")
+                    return
+
             if job.format_type == 'audio':
                 ydl_opts.update({
                     'format': 'bestaudio/best',

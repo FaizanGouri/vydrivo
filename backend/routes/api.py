@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl
 from sse_starlette.sse import EventSourceResponse
 
-from services.youtube import is_valid_youtube_url, extract_video_info
+from services.youtube import is_valid_supported_url, extract_video_info
 from services.job_manager import job_manager
 
 router = APIRouter()
@@ -15,7 +15,7 @@ class InspectRequest(BaseModel):
 
 class CreateJobRequest(BaseModel):
     url: str
-    format: str  # 'video' or 'audio'
+    format: str  # 'video', 'audio', or 'image'
     quality: str # '1080p', '720p', '320kbps', etc.
 
 @router.get("/health")
@@ -25,20 +25,20 @@ def health_check():
 @router.post("/inspect")
 def inspect_video(req: InspectRequest):
     url = req.url.strip()
-    if not is_valid_youtube_url(url):
-        raise HTTPException(status_code=400, detail="Invalid YouTube video or Shorts URL. Please provide a valid YouTube link.")
+    if not is_valid_supported_url(url):
+        raise HTTPException(status_code=400, detail="Invalid URL. Please provide a valid YouTube video/Shorts link or Instagram Reel/Post link.")
 
     try:
         info = extract_video_info(url)
         return {"success": True, "data": info}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch video details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch media details: {str(e)}")
 
 @router.post("/jobs")
 def create_job(req: CreateJobRequest):
     url = req.url.strip()
-    if not is_valid_youtube_url(url):
-        raise HTTPException(status_code=400, detail="Invalid YouTube URL.")
+    if not is_valid_supported_url(url):
+        raise HTTPException(status_code=400, detail="Invalid YouTube or Instagram link.")
 
     job = job_manager.create_job(url=url, format_type=req.format, quality=req.quality)
     return {"success": True, "job_id": job.job_id, "status": job.status}
@@ -89,7 +89,12 @@ def download_file(job_id: str):
     if job.status != "completed" or not job.file_path:
         raise HTTPException(status_code=400, detail="File is not ready for download.")
 
-    media_type = "audio/mpeg" if job.format_type == "audio" else "video/mp4"
+    if job.format_type == "audio":
+        media_type = "audio/mpeg"
+    elif job.format_type == "image":
+        media_type = "image/jpeg"
+    else:
+        media_type = "video/mp4"
     
     # Sanitize filename for HTTP header (RFC 5987 / Latin-1 safe ASCII fallback + UTF-8 filename*)
     import urllib.parse
@@ -98,7 +103,8 @@ def download_file(job_id: str):
     # ASCII-only fallback filename
     ascii_filename = re.sub(r'[^\x20-\x7E]', '_', job.filename)
     if not ascii_filename.strip():
-        ascii_filename = f"video.{'mp3' if job.format_type == 'audio' else 'mp4'}"
+        ext = 'mp3' if job.format_type == 'audio' else ('jpg' if job.format_type == 'image' else 'mp4')
+        ascii_filename = f"media.{ext}"
     
     encoded_filename = urllib.parse.quote(job.filename)
     content_disposition = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'

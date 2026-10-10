@@ -1,7 +1,7 @@
-# VYDRIVO – Modern YouTube & Shorts Video Downloader
+# VYDRIVO – Modern YouTube & Instagram Media Downloader
 
 <p align="center">
-  <b>A sleek, high-performance web application to inspect and download YouTube videos & Shorts in high quality (1080p Full HD, 720p HD, 480p) or extract crystal-clear MP3 audio with real-time SSE progress streaming.</b>
+  <b>A sleek, high-performance web application to inspect and download YouTube videos & Shorts as well as Instagram Reels and Posts in high quality (MP4 video, cover JPG images) or extract crystal-clear MP3 audio with real-time SSE progress streaming.</b>
 </p>
 
 ---
@@ -9,9 +9,11 @@
 ## 🌟 Highlights & Features
 
 - **Full-Screen Forest Green Aesthetic**: Clean, responsive, and immersive edge-to-edge design.
+- **Navbar Platform Switcher**: Easily switch between **YouTube** mode and **Instagram Reel / Image** mode right from the top navigation.
 - **Dynamic Preloader Animation**: Multi-platform logo gathering (YouTube, Instagram, Pinterest, Facebook) with fluid color mixing and animated **VYDRIVO** letter formation.
 - **Continuous Floating Levitation**: Smooth floating animation for the big background watermark and verified counter badge.
 - **Universal YouTube Support**: Works seamlessly with regular YouTube videos (`youtube.com/watch?v=...`) and vertical Shorts (`youtube.com/shorts/...`).
+- **Instagram Reel & Image Support**: Download Instagram Reels in HD MP4, save high-resolution cover photos/images (`.jpg`), or extract background audio (`.mp3`).
 - **Lossless Stream Merging via FFmpeg**: High-resolution video tracks (1080p, 720p) are merged with audio streams losslessly into standard MP4.
 - **High-Bitrate MP3 Extraction**: Extract audio directly to MP3 (up to 320 kbps).
 - **Accurate Real-Time Progress**: Powered by Server-Sent Events (SSE) reporting real download percentage, speed, and ETA.
