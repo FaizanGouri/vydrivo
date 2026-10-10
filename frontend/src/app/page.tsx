@@ -228,22 +228,22 @@ export default function Home() {
           <a href="#how" className="px-5 py-2.5 rounded-full text-[15px] font-medium hover:bg-white/20 text-white transition-colors">How it works</a>
           <a href="#contact" className="px-5 py-2.5 rounded-full text-[15px] font-medium hover:bg-white/20 text-white transition-colors">Contact</a>
         </div>
+
+        {/* Floating Side Badge */}
+        <div className="pulse-badge hidden md:inline-flex items-center gap-2.5 py-1.5 pl-2 pr-4 rounded-full bg-white/[0.18] border border-white/[0.35] shadow-md backdrop-blur-md">
+          <i className="w-7 h-7 rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold text-xs not-italic">
+            ✓
+          </i>
+          <div className="text-left">
+            <b className="block text-[#f2b632] text-[13px] leading-tight font-extrabold">+10 lakh</b>
+            <small className="text-[9px] tracking-[0.06em] text-white/85 uppercase font-semibold">VIDEOS SAVED</small>
+          </div>
+        </div>
       </nav>
 
       {/* Hero Section (Centered Clean & Focused Downloader) */}
       <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center py-10">
         
-        {/* Badge with pulse */}
-        <div className="pulse-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.16] border border-white/[0.35] mb-5 shadow-sm">
-          <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
-            ✓
-          </i>
-          <div className="text-left">
-            <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">+10 lakh</b>
-            <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">VIDEOS SAVED</small>
-          </div>
-        </div>
-
         <h1 className="text-[clamp(36px,5vw,62px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[18ch]">
           Save any video you love
         </h1>
