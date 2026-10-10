@@ -9,7 +9,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Clipjax – YouTube & Shorts Video Downloader",
+  title: "VYDRIVO – YouTube & Shorts Video Downloader",
   description: "Fast, simple, and free YouTube and Shorts video downloader with MP4 and MP3 export.",
 };
 

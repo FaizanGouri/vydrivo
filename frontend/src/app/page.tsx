@@ -200,9 +200,9 @@ export default function Home() {
       {/* Background Big Watermark Title */}
       <div 
         aria-hidden="true" 
-        className="absolute left-1/2 top-14 -translate-x-1/2 text-[clamp(110px,19vw,260px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/55 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
+        className="absolute left-1/2 top-14 -translate-x-1/2 text-[clamp(100px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/55 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
       >
-        CLIPJAX
+        VYDRIVO
       </div>
 
       {/* Code Ghost Decorative Snippets with floating drift */}
@@ -218,27 +218,20 @@ export default function Home() {
 
       {/* Top Navigation */}
       <nav className="relative z-10 flex items-center justify-between gap-4">
-        <a className="font-bold text-[22px] tracking-[-0.01em] text-white" href="#">
-          clipjax<span className="text-[#f2b632]">.</span>
+        <a className="font-bold text-[24px] tracking-[-0.01em] text-white" href="#">
+          vydrivo<span className="text-[#f2b632]">.</span>
         </a>
 
-        <div className="hidden sm:flex gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md">
+        <div className="flex gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md">
           <a href="#" className="px-5 py-2.5 rounded-full text-[15px] font-medium bg-white/20 text-white transition-colors">Home</a>
           <a href="#formats" className="px-5 py-2.5 rounded-full text-[15px] font-medium hover:bg-white/20 text-white transition-colors">Formats</a>
           <a href="#how" className="px-5 py-2.5 rounded-full text-[15px] font-medium hover:bg-white/20 text-white transition-colors">How it works</a>
           <a href="#contact" className="px-5 py-2.5 rounded-full text-[15px] font-medium hover:bg-white/20 text-white transition-colors">Contact</a>
         </div>
-
-        <a className="flex items-center gap-2.5 py-1.5 pl-4 pr-2 rounded-full bg-white/[0.16] border border-white/[0.35] text-[14px] font-medium text-white shadow-sm hover:bg-white/25 transition-all" href="#">
-          Sign in 
-          <span className="w-8 h-8 rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold text-[14px]">
-            C
-          </span>
-        </a>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-[1.05fr_1fr_0.8fr] items-center gap-6 pt-5">
+      {/* Hero Section (Balanced 2-Column Layout Without Ninja Mascot) */}
+      <section className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] items-center gap-12 pt-8">
         
         {/* Left Column: Copy & Downloader Input */}
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
@@ -254,20 +247,20 @@ export default function Home() {
             </div>
           </div>
 
-          <h1 className="text-[clamp(32px,3.6vw,46px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[12ch]">
+          <h1 className="text-[clamp(36px,4.5vw,56px)] leading-[1.06] font-bold tracking-[-0.02em] text-white max-w-[14ch]">
             Save any video you love
           </h1>
 
-          <p className="mt-2.5 italic font-light text-[18px] text-white/75">
+          <p className="mt-2.5 italic font-light text-[20px] text-white/80">
             paste the link, pick a format, done
           </p>
 
-          <p className="mt-4 max-w-[36ch] text-[14.5px] leading-relaxed text-white/85">
+          <p className="mt-4 max-w-[42ch] text-[15px] leading-relaxed text-white/85">
             Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop.
           </p>
 
           {/* Input Box Form */}
-          <form onSubmit={handleInspect} className="mt-6 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[430px] shadow-[0_14px_30px_-14px_rgba(0,0,0,0.4)] focus-within:ring-2 focus-within:ring-[#f2b632]">
+          <form onSubmit={handleInspect} className="mt-7 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[480px] shadow-[0_14px_30px_-14px_rgba(0,0,0,0.4)] focus-within:ring-2 focus-within:ring-[#f2b632]">
             <input
               type="url"
               value={url}
@@ -278,7 +271,7 @@ export default function Home() {
             <button 
               type="submit" 
               disabled={loading}
-              className="border-0 cursor-pointer font-semibold text-[15px] px-6 py-3.5 rounded-full bg-[#1f2a24] hover:bg-[#0f1612] text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2"
+              className="border-0 cursor-pointer font-semibold text-[15px] px-7 py-3.5 rounded-full bg-[#1f2a24] hover:bg-[#0f1612] text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download"}
             </button>
@@ -289,54 +282,14 @@ export default function Home() {
           {error && <p className="mt-3 text-[14px] text-[#ffe29a] font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
         </div>
 
-        {/* Center Column: Animated Green Ninja Mascot */}
-        <div className="relative flex flex-col items-center justify-center py-4">
-          <svg 
-            viewBox="0 0 320 400" 
-            role="img" 
-            aria-label="Green ninja mascot"
-            className="mascot-svg w-[min(100%,340px)] h-auto drop-shadow-[0_30px_24px_rgba(10,40,20,0.45)]"
-          >
-            {/* body */}
-            <ellipse cx="160" cy="385" rx="90" ry="10" fill="rgba(0,0,0,.18)"/>
-            <path d="M95 230 Q160 205 225 230 L240 340 Q160 372 80 340 Z" fill="#3b4540"/>
-            <path d="M120 232 Q160 250 200 232 L204 262 Q160 280 116 262 Z" fill="#7fc79a"/>
-            <rect x="108" y="300" width="104" height="14" rx="7" fill="#7fc79a"/>
-            {/* arms */}
-            <path d="M228 245 Q275 240 300 205" stroke="#3b4540" strokeWidth="30" strokeLinecap="round" fill="none"/>
-            <circle cx="304" cy="200" r="15" fill="#7fc79a"/>
-            <path d="M94 250 Q60 290 84 330" stroke="#3b4540" strokeWidth="30" strokeLinecap="round" fill="none"/>
-            <circle cx="86" cy="334" r="15" fill="#7fc79a"/>
-            {/* head */}
-            <circle cx="160" cy="130" r="98" fill="#7fc79a"/>
-            <path d="M70 118 Q160 88 250 118 L250 160 Q160 182 70 160 Z" fill="#454c49"/>
-            {/* eyes */}
-            <ellipse cx="124" cy="140" rx="24" ry="27" fill="#fff"/>
-            <ellipse cx="196" cy="140" rx="24" ry="27" fill="#fff"/>
-            <circle cx="127" cy="143" r="15" fill="#3f8a5a"/>
-            <circle cx="193" cy="143" r="15" fill="#3f8a5a"/>
-            <circle cx="128" cy="144" r="8" fill="#1b2a22"/>
-            <circle cx="192" cy="144" r="8" fill="#1b2a22"/>
-            <circle cx="132" cy="137" r="4" fill="#fff"/>
-            <circle cx="196" cy="137" r="4" fill="#fff"/>
-            {/* mask */}
-            <path d="M82 172 Q160 200 238 172 Q232 222 160 228 Q88 222 82 172Z" fill="#6cb98a"/>
-            <path d="M118 112 Q124 102 134 108" stroke="#2c3430" strokeWidth="5" strokeLinecap="round" fill="none"/>
-            <path d="M202 112 Q196 102 186 108" stroke="#2c3430" strokeWidth="5" strokeLinecap="round" fill="none"/>
-          </svg>
-          <span className="text-[12px] tracking-[0.14em] text-white/75 whitespace-nowrap mt-2 uppercase font-medium">
-            YOUR LINK. YOUR VIDEO.
-          </span>
-        </div>
-
         {/* Right Column: Cards (Format Options & Dynamic Download Result) */}
-        <div className="flex flex-col gap-3.5 w-full" id="formats">
+        <div className="flex flex-col gap-4 w-full" id="formats">
           
           {/* Card 1: MP4 Video */}
-          <article className="clip-card p-4 rounded-[20px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
-            <h3 className="text-[17px] font-bold">MP4 Video</h3>
-            <p className="text-[12.5px] leading-snug text-[#53665a] mt-1">Up to 1080p. Plays on every phone and TV.</p>
-            <div className="my-3 h-20 rounded-xl bg-gradient-to-tr from-[#ffb347] to-[#f2761f] grid place-items-center text-[38px] font-extrabold text-[#2b1a05]">
+          <article className="clip-card p-5 rounded-[22px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
+            <h3 className="text-[18px] font-bold">MP4 Video</h3>
+            <p className="text-[13px] leading-snug text-[#53665a] mt-1">Up to 1080p. Plays on every phone and TV.</p>
+            <div className="my-3.5 h-20 rounded-xl bg-gradient-to-tr from-[#ffb347] to-[#f2761f] grid place-items-center text-[38px] font-extrabold text-[#2b1a05]">
               ▶
             </div>
             <button 
@@ -353,10 +306,10 @@ export default function Home() {
           </article>
 
           {/* Card 2: MP3 Audio */}
-          <article className="clip-card p-4 rounded-[20px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
-            <h3 className="text-[17px] font-bold">MP3 Audio</h3>
-            <p className="text-[12.5px] leading-snug text-[#53665a] mt-1">Keep only the sound. Great for music &amp; podcasts.</p>
-            <div className="my-3 h-20 rounded-xl bg-gradient-to-tr from-[#27312b] to-[#0e1511] grid place-items-center text-[38px] font-extrabold text-[#7fc79a]">
+          <article className="clip-card p-5 rounded-[22px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
+            <h3 className="text-[18px] font-bold">MP3 Audio</h3>
+            <p className="text-[13px] leading-snug text-[#53665a] mt-1">Keep only the sound. Great for music &amp; podcasts.</p>
+            <div className="my-3.5 h-20 rounded-xl bg-gradient-to-tr from-[#27312b] to-[#0e1511] grid place-items-center text-[38px] font-extrabold text-[#7fc79a]">
               ♪
             </div>
             <button 
@@ -521,7 +474,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 mt-5 pt-4 border-t border-white/[0.18] flex flex-wrap justify-between items-center gap-3 text-[12.5px] text-white/75" id="contact">
-        <span>&copy; 2026 Clipjax. All rights reserved.</span>
+        <span>&copy; 2026 VYDRIVO. All rights reserved.</span>
         <span>Download only content you own or have permission to save.</span>
       </footer>
     </main>
