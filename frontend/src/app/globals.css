@@ -32,31 +32,34 @@ body {
   }
 }
 
-/* Continuous floating levitation & subtle breathing pulse for big VYDRIVO watermark */
+/* Big VYDRIVO continuous smooth floating levitation */
 @keyframes float-watermark {
   0%, 100% {
-    transform: translate(-50%, 0px) scale(1);
-    opacity: 0.85;
+    transform: translate(-50%, 0px);
   }
   50% {
-    transform: translate(-50%, -20px) scale(1.025);
-    opacity: 1;
+    transform: translate(-50%, -18px);
   }
 }
 
 .floating-watermark {
-  animation: float-watermark 6s ease-in-out infinite;
-  will-change: transform, opacity;
+  animation: float-watermark 5s ease-in-out infinite;
+  will-change: transform;
 }
 
-/* Subtle breathing pulse for gold badge and accents */
-@keyframes pulse-subtle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+/* Badge smooth floating animation when centered */
+@keyframes float-badge {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
-.pulse-badge {
-  animation: pulse-subtle 3s ease-in-out infinite;
+.floating-badge {
+  animation: float-badge 3.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* Custom scrollbars */
