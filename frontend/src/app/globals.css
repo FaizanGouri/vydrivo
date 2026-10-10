@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08090d;
+  --background: #06070b;
   --foreground: #f8fafc;
 }
 
@@ -16,21 +16,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Glassmorphism utility */
-.glass-card {
-  background: rgba(22, 24, 34, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Subtle grid mesh background pattern */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
-.glass-card-hover {
+/* Glassmorphism card styles */
+.glass-panel {
+  background: rgba(15, 17, 26, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-panel-interactive {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.glass-card-hover:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  transform: translateY(-2px);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+.glass-panel-interactive:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 30px -10px rgba(139, 92, 246, 0.25);
+}
+
+/* Glowing Border Gradient Effect */
+.gradient-border-wrap {
+  position: relative;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.6), rgba(245, 158, 11, 0.4), rgba(139, 92, 246, 0.6));
+  padding: 1.5px;
+  border-radius: 26px;
+  box-shadow: 0 0 50px -10px rgba(244, 63, 94, 0.25);
 }
 
 /* Ticker marquee animation */
@@ -49,29 +66,63 @@ body {
   animation-play-state: paused;
 }
 
-/* Ambient glow orb styles */
-.glow-orb-purple {
-  position: absolute;
-  filter: blur(130px);
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(139, 92, 246, 0.05) 70%, transparent 100%);
-  border-radius: 9999px;
+/* Floating animation for central graphics & cards */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
 }
 
-.glow-orb-orange {
-  position: absolute;
-  filter: blur(130px);
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.16) 0%, rgba(244, 63, 94, 0.05) 70%, transparent 100%);
-  border-radius: 9999px;
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
 
-.glow-orb-cyan {
+/* Ambient glow orb animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.08); }
+}
+
+.glow-orb-magenta {
   position: absolute;
   filter: blur(140px);
   pointer-events: none;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.14) 0%, rgba(14, 165, 233, 0.04) 70%, transparent 100%);
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.28) 0%, rgba(217, 70, 239, 0.12) 60%, transparent 100%);
   border-radius: 9999px;
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+
+.glow-orb-amber {
+  position: absolute;
+  filter: blur(140px);
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.24) 0%, rgba(249, 115, 22, 0.1) 60%, transparent 100%);
+  border-radius: 9999px;
+  animation: pulse-slow 10s ease-in-out infinite reverse;
+}
+
+.glow-orb-violet {
+  position: absolute;
+  filter: blur(150px);
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(99, 102, 241, 0.1) 60%, transparent 100%);
+  border-radius: 9999px;
+  animation: pulse-slow 12s ease-in-out infinite;
+}
+
+/* Shimmer scanline effect on buttons */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: shimmer 2.5s infinite;
 }
 
 /* Custom scrollbars */
@@ -79,12 +130,12 @@ body {
   width: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #08090d;
+  background: #06070b;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f2433;
+  background: #1f2333;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #333a4f;
+  background: #363e59;
 }
