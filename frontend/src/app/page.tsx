@@ -197,10 +197,10 @@ export default function Home() {
   return (
     <main className="stage relative max-w-[1240px] mx-auto min-h-[640px] rounded-[26px] bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden shadow-[0_30px_60px_-25px_rgba(20,60,35,0.55)] px-6 sm:px-11 pt-6 sm:pt-7 pb-7 flex flex-col justify-between">
       
-      {/* Background Big Watermark Title */}
+      {/* Background Big Watermark Title with Continuous Floating Levitation */}
       <div 
         aria-hidden="true" 
-        className="absolute left-1/2 top-14 -translate-x-1/2 text-[clamp(100px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/55 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
+        className="floating-watermark absolute left-1/2 top-14 text-[clamp(100px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/60 via-white/30 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
       >
         VYDRIVO
       </div>
