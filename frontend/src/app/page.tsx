@@ -54,11 +54,24 @@ const BACKEND_URL = "http://127.0.0.1:8000/api/v1";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"youtube" | "instagram">("youtube");
+  const [tabDirection, setTabDirection] = useState<"left" | "right">("right");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [videoData, setVideoData] = useState<VideoData | null>(null);
+
+  const switchTab = (tab: "youtube" | "instagram") => {
+    if (tab === activeTab) return;
+    setTabDirection(tab === "instagram" ? "right" : "left");
+    setActiveTab(tab);
+    setUrl("");
+    setVideoData(null);
+    setError(null);
+    setMsg(null);
+    setJobStatus(null);
+    setActiveJobId(null);
+  };
   
   // Selection state
   const [selectedOption, setSelectedOption] = useState<MediaOption | null>(null);
@@ -368,44 +381,32 @@ export default function Home() {
         <a 
           className="font-bold text-[24px] tracking-[-0.01em] text-white flex items-center gap-1.5" 
           href="#"
-          onClick={(e) => { e.preventDefault(); setActiveTab("youtube"); setVideoData(null); setError(null); }}
+          onClick={(e) => { e.preventDefault(); switchTab("youtube"); }}
         >
           vydrivo<span className="text-[#f2b632]">.</span>
         </a>
 
-        <div className="flex gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md">
+        <div className="flex gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner">
           <button 
             type="button"
-            onClick={() => {
-              setActiveTab("youtube");
-              setUrl("");
-              setVideoData(null);
-              setError(null);
-              setMsg(null);
-            }}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            onClick={() => switchTab("youtube")}
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
               activeTab === "youtube"
-                ? "bg-white text-[#1f2a24] shadow-md"
-                : "text-white hover:bg-white/20"
+                ? "bg-white text-[#1f2a24] shadow-md scale-[1.02]"
+                : "text-white hover:bg-white/20 scale-100"
             }`}
           >
-            <Play className={`w-3.5 h-3.5 ${activeTab === "youtube" ? "fill-red-600 text-red-600" : ""}`} />
+            <Play className={`w-3.5 h-3.5 transition-colors duration-300 ${activeTab === "youtube" ? "fill-red-600 text-red-600" : ""}`} />
             YouTube
           </button>
 
           <button 
             type="button"
-            onClick={() => {
-              setActiveTab("instagram");
-              setUrl("");
-              setVideoData(null);
-              setError(null);
-              setMsg(null);
-            }}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            onClick={() => switchTab("instagram")}
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
               activeTab === "instagram"
-                ? "bg-gradient-to-r from-[#fdc468] via-[#df4996] to-[#4f5bd5] text-white shadow-md font-bold"
-                : "text-white hover:bg-white/20"
+                ? "bg-gradient-to-r from-[#fdc468] via-[#df4996] to-[#4f5bd5] text-white shadow-md font-bold scale-[1.02]"
+                : "text-white hover:bg-white/20 scale-100"
             }`}
           >
             <Camera className="w-3.5 h-3.5" />
@@ -417,68 +418,75 @@ export default function Home() {
       {/* Hero Section (Centered Clean & Focused Downloader) */}
       <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center py-10">
         
-        {/* Centered Floating Badge */}
-        <div className="floating-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.18] border border-white/[0.35] mb-5 shadow-lg backdrop-blur-md">
-          <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
-            ✓
-          </i>
-          <div className="text-left">
-            <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">
-              {activeTab === "youtube" ? "+10 lakh" : "+5 lakh"}
-            </b>
-            <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">
-              {activeTab === "youtube" ? "VIDEOS SAVED" : "REELS & POSTS SAVED"}
-            </small>
+        <div 
+          key={activeTab}
+          className={`w-full flex flex-col items-center justify-center ${
+            tabDirection === "right" ? "tab-slide-right" : "tab-slide-left"
+          }`}
+        >
+          {/* Centered Floating Badge */}
+          <div className="floating-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.18] border border-white/[0.35] mb-5 shadow-lg backdrop-blur-md">
+            <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
+              ✓
+            </i>
+            <div className="text-left">
+              <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">
+                {activeTab === "youtube" ? "+10 lakh" : "+5 lakh"}
+              </b>
+              <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">
+                {activeTab === "youtube" ? "VIDEOS SAVED" : "REELS & POSTS SAVED"}
+              </small>
+            </div>
           </div>
+
+          <h1 className="text-[clamp(36px,5vw,62px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[20ch]">
+            {activeTab === "youtube"
+              ? "Save any video you love"
+              : "Save any Instagram Reel or Image"}
+          </h1>
+
+          <p className="mt-3 italic font-light text-[22px] text-white/85">
+            {activeTab === "youtube"
+              ? "paste the link, pick a format, done"
+              : "paste the reel or post link, download instantly"}
+          </p>
+
+          <p className="mt-4 max-w-[50ch] text-[15px] sm:text-[16px] leading-relaxed text-white/90">
+            {activeTab === "youtube"
+              ? "Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop."
+              : "Download Instagram Reels in HD MP4, save high-resolution cover photos/images, or extract audio directly."}
+          </p>
+
+          {/* Input Box Form */}
+          <form onSubmit={handleInspect} className="mt-8 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[560px] shadow-[0_16px_35px_-12px_rgba(0,0,0,0.4)] focus-within:ring-3 focus-within:ring-[#f2b632]">
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder={
+                activeTab === "youtube"
+                  ? "Paste YouTube video or Shorts link here"
+                  : "Paste Instagram Reel or Post URL here (e.g. instagram.com/reel/...)"
+              }
+              className="flex-1 min-w-0 border-0 bg-transparent px-5 py-2.5 font-medium text-[15px] sm:text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
+            />
+            <button 
+              type="submit" 
+              disabled={loading}
+              className={`border-0 cursor-pointer font-semibold text-[15px] px-8 py-3.5 rounded-full text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2 shadow-md ${
+                activeTab === "instagram"
+                  ? "bg-gradient-to-r from-[#df4996] to-[#4f5bd5] hover:opacity-95"
+                  : "bg-[#1f2a24] hover:bg-[#0f1612]"
+              }`}
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download"}
+            </button>
+          </form>
+
+          {/* Feedback Messages */}
+          {msg && <p className="mt-4 text-[14px] text-white font-medium">{msg}</p>}
+          {error && <p className="mt-4 text-[14px] text-[#ffe29a] font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
         </div>
-
-        <h1 className="text-[clamp(36px,5vw,62px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[20ch]">
-          {activeTab === "youtube"
-            ? "Save any video you love"
-            : "Save any Instagram Reel or Image"}
-        </h1>
-
-        <p className="mt-3 italic font-light text-[22px] text-white/85">
-          {activeTab === "youtube"
-            ? "paste the link, pick a format, done"
-            : "paste the reel or post link, download instantly"}
-        </p>
-
-        <p className="mt-4 max-w-[50ch] text-[15px] sm:text-[16px] leading-relaxed text-white/90">
-          {activeTab === "youtube"
-            ? "Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop."
-            : "Download Instagram Reels in HD MP4, save high-resolution cover photos/images, or extract audio directly."}
-        </p>
-
-        {/* Input Box Form */}
-        <form onSubmit={handleInspect} className="mt-8 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[560px] shadow-[0_16px_35px_-12px_rgba(0,0,0,0.4)] focus-within:ring-3 focus-within:ring-[#f2b632]">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={
-              activeTab === "youtube"
-                ? "Paste YouTube video or Shorts link here"
-                : "Paste Instagram Reel or Post URL here (e.g. instagram.com/reel/...)"
-            }
-            className="flex-1 min-w-0 border-0 bg-transparent px-5 py-2.5 font-medium text-[15px] sm:text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
-          />
-          <button 
-            type="submit" 
-            disabled={loading}
-            className={`border-0 cursor-pointer font-semibold text-[15px] px-8 py-3.5 rounded-full text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2 shadow-md ${
-              activeTab === "instagram"
-                ? "bg-gradient-to-r from-[#df4996] to-[#4f5bd5] hover:opacity-95"
-                : "bg-[#1f2a24] hover:bg-[#0f1612]"
-            }`}
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download"}
-          </button>
-        </form>
-
-        {/* Feedback Messages */}
-        {msg && <p className="mt-4 text-[14px] text-white font-medium">{msg}</p>}
-        {error && <p className="mt-4 text-[14px] text-[#ffe29a] font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
       </section>
 
       {/* Dynamic Video Preview / Processing Modal / Drawer if video is fetched */}
