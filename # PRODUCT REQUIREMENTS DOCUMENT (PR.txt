@@ -1,0 +1,1095 @@
+# PRODUCT REQUIREMENTS DOCUMENT (PRD)
+## Video Downloader Website
+
+**Project Name:** Video Downloader  
+**Document Version:** 1.0  
+**Project Type:** Public Web Application  
+**Platform:** Web Browser — Desktop, Tablet and Mobile  
+**Document Status:** Development Specification  
+**Primary Objective:** Build a secure, responsive and premium-quality website that accepts supported video links, displays video information, and lets users download or export media when the source explicitly permits it.
+
+---
+
+# 1. Project Overview
+
+## 1.1 Introduction
+
+The Video Downloader Website will be a web application where users can paste a video URL, inspect the supported content, select an available output format or quality, and download the resulting file when authorized access is available.
+
+The application will provide a premium dark interface, smooth animations, clear error messages, and real-time processing progress.
+
+The website will be designed for public access, with security controls to protect the server from malicious URLs, excessive requests, oversized files, and unauthorized resource consumption.
+
+## 1.2 Problem Statement
+
+Users often encounter video links but do not have a clear, consistent interface for determining whether the linked content is available for authorized download or conversion.
+
+The proposed application will provide:
+
+- A single interface for submitting supported video links.
+- Clear information about supported and unsupported sources.
+- Video preview and metadata where available.
+- Format and quality selection based on actual source capabilities.
+- Real-time progress reporting for supported operations.
+- A direct file download when processing is completed.
+- Clear explanations when a download is unavailable.
+
+## 1.3 Project Objectives
+
+1. Build a responsive public website.
+2. Implement secure URL validation.
+3. Integrate permitted media sources and official APIs.
+4. Provide an elegant, professional dark UI.
+5. Display real processing progress without fabricated percentages.
+6. Support cancellation, retry and useful error messages.
+7. Prevent unauthorized downloads and unsafe server requests.
+8. Test the application before public deployment.
+9. Keep the architecture modular for future improvements.
+
+## 1.4 Success Criteria
+
+The project will be considered successful when:
+
+- Users can submit supported URLs without page errors.
+- The application correctly distinguishes supported from unsupported sources.
+- Metadata is displayed only when it is actually available.
+- Supported media can be processed and downloaded successfully.
+- Progress updates correspond to actual backend processing.
+- Cancellation and failure states work correctly.
+- The application passes the defined security and functional tests.
+- The website works on common desktop and mobile browsers.
+
+---
+
+# 2. Scope of the Project
+
+## 2.1 In-Scope Features
+
+- Public landing page.
+- Video URL input and validation.
+- Support for explicitly approved URL patterns.
+- Video metadata and thumbnail preview where available.
+- Authorized media inspection and processing.
+- Format and quality selection based on actual capabilities.
+- Live progress and job status.
+- Download button after successful processing.
+- Cancellation and retry.
+- Helpful error messages.
+- Temporary file management.
+- Responsive dark UI.
+- Rate limiting and server-side security.
+- Testing, documentation and deployment preparation.
+
+## 2.2 Out-of-Scope Features for the Initial Release
+
+- Bypassing YouTube restrictions or access controls.
+- Downloading arbitrary YouTube videos through unofficial extraction methods.
+- Circumventing DRM or paywalls.
+- Downloading private or restricted videos without authorization.
+- User accounts and subscription payments.
+- Bulk downloading of multiple links.
+- Browser extensions.
+- Native Android or Windows applications.
+- Permanent personal cloud storage.
+- Advanced AI-based video processing.
+
+These features will not be assumed to be part of the MVP. Any future expansion must be reviewed for technical feasibility, source permissions and applicable policies.
+
+## 2.3 Supported Content Policy
+
+The application must distinguish between video information and actual downloadable media.
+
+**YouTube links:** The application may provide permitted metadata, previews and official viewing links. The YouTube Data API must not be treated as a direct video-file download API.
+
+**Other media sources:** Downloads may be supported through official APIs, documented download mechanisms or authorized direct media URLs, subject to source-specific terms and permissions.
+
+**User-owned content:** Content supplied through an authorized upload or export workflow may be processed when the user has the required rights.
+
+If the source does not provide an authorized downloadable file, the application must explain the limitation instead of pretending that a download is available.
+
+---
+
+# 3. Target Users
+
+## 3.1 Primary Users
+
+- Users who need to inspect supported video links.
+- Creators processing their own authorized media.
+- Users downloading files from supported, permitted sources.
+- Users who want a straightforward and modern interface.
+
+## 3.2 User Expectations
+
+Users should be able to:
+
+- Understand how the website works without instructions.
+- Paste a link quickly.
+- See whether the source is supported.
+- View available options before starting a job.
+- Understand whether a task is queued, running, completed or failed.
+- Download the resulting file easily.
+- Understand why a particular operation cannot be performed.
+
+---
+
+# 4. Functional Requirements
+
+## FR-01: Landing Page
+
+The landing page must provide:
+
+- Project branding and navigation.
+- A prominent URL input field.
+- A primary action button.
+- Supported-source information.
+- A short explanation of permitted usage.
+- Feature highlights.
+- Footer links for privacy, terms and support.
+
+**Acceptance criteria:** The page loads successfully, displays the main input, and remains usable at desktop and mobile widths.
+
+## FR-02: URL Input and Validation
+
+The application must:
+
+- Accept a URL pasted by the user.
+- Trim unnecessary whitespace.
+- Validate URL syntax.
+- Allow only HTTPS URLs unless a specific documented exception is required.
+- Check the hostname against an explicit allowlist.
+- Reject unsupported hosts and malformed URLs.
+- Prevent access to private or internal network resources.
+- Display understandable validation errors.
+
+The server must repeat validation even when the frontend has already validated the input.
+
+**Acceptance criteria:** Invalid URLs are rejected safely, and valid URLs from approved sources can proceed to inspection.
+
+## FR-03: Source Inspection
+
+After the user submits a URL, the application will:
+
+1. Validate the request.
+2. Identify the supported source.
+3. Request metadata through the approved integration.
+4. Determine whether an authorized downloadable media resource exists.
+5. Return available metadata and capabilities.
+
+Possible information includes:
+
+- Video title.
+- Thumbnail.
+- Duration, if available.
+- Source name.
+- Available output formats.
+- Available quality options.
+- Download eligibility.
+
+The application must not invent unavailable metadata.
+
+**Acceptance criteria:** Supported sources return valid inspection results. Unsupported or unavailable content receives a clear response.
+
+## FR-04: Video Preview
+
+Where metadata is available, display:
+
+- Thumbnail.
+- Title.
+- Duration.
+- Source identification.
+- Available output options.
+- Download eligibility status.
+
+For sources without accessible metadata, display a useful fallback message rather than a broken image or empty card.
+
+## FR-05: Format and Quality Selection
+
+The application may display:
+
+- MP4, when supported by the source and processing pipeline.
+- Other permitted output formats, if implemented.
+- MP3 audio export, where source access and processing rights permit it.
+- Available resolutions such as 360p, 480p, 720p or 1080p, only when actually offered or supported.
+
+The interface must never promise a resolution or format that the backend cannot provide.
+
+## FR-06: Processing Job Creation
+
+When the user starts an authorized operation:
+
+1. The backend validates the request.
+2. The backend verifies source eligibility.
+3. A job identifier is generated.
+4. The job enters a queued or processing state.
+5. The frontend begins tracking the job.
+
+Repeated requests must not create uncontrolled duplicate jobs. Suitable request limits and duplicate-submission protections must be implemented.
+
+## FR-07: Real-Time Progress
+
+The interface must show actual job states:
+
+- Validating
+- Queued
+- Processing
+- Finalizing
+- Completed
+- Failed
+- Cancelled
+
+Where the processing engine provides reliable progress information, the UI may display a percentage. If it cannot provide an accurate percentage, the interface must display an indeterminate progress indicator.
+
+Progress must never be fabricated merely to make the interface appear active.
+
+## FR-08: Download Result
+
+After a successful job:
+
+- Show the completed status.
+- Display the output filename and file size where available.
+- Provide a download action.
+- Return the appropriate file response or a short-lived authorized download URL.
+- Prevent unauthorized access to another user's job or output.
+
+The application must verify that the output file exists and is ready before reporting completion.
+
+## FR-09: Cancellation
+
+Users must be able to request cancellation of an active job.
+
+The backend must:
+
+- Validate job ownership or the relevant anonymous-session token.
+- Signal the worker to stop where supported.
+- Stop unnecessary processing.
+- Clean up incomplete temporary files.
+- Return the final job state.
+
+Cancellation is a request, not a guarantee that every underlying operation stops instantly.
+
+## FR-10: Retry
+
+For recoverable errors, the interface may provide a retry action.
+
+The system must distinguish between:
+
+- Temporary network errors.
+- Rate-limit responses.
+- Source unavailability.
+- Unsupported content.
+- Permission failures.
+- Internal processing failures.
+
+Permanent failures must not be retried automatically without reason.
+
+## FR-11: Temporary File Cleanup
+
+The backend must:
+
+- Store temporary outputs in controlled directories.
+- Generate unpredictable filenames.
+- Avoid trusting filenames supplied by users.
+- Remove expired files.
+- Remove incomplete files after failed or cancelled jobs.
+- Prevent direct public access to arbitrary storage paths.
+
+The retention period must be configurable and documented.
+
+## FR-12: Error Handling
+
+Errors must be understandable to users and useful to developers.
+
+Examples:
+
+- Invalid URL.
+- Unsupported source.
+- Download not permitted.
+- Source temporarily unavailable.
+- Processing failed.
+- File expired.
+- Request limit reached.
+- Internal server error.
+
+Internal stack traces, API secrets, server paths and sensitive infrastructure details must not be exposed to users.
+
+---
+
+# 5. UI/UX Requirements
+
+## 5.1 Design Direction
+
+**Visual style:** Premium, modern, professional dark interface.
+
+The UI should use a charcoal background, restrained contrast, clean typography, subtle borders, carefully spaced panels and smooth transitions.
+
+Avoid excessive neon effects, bright glow, distracting gradients and unnecessary decorative elements.
+
+## 5.2 Main Components
+
+1. Navigation bar.
+2. Hero section.
+3. URL input card.
+4. Paste and inspect actions.
+5. Video preview card.
+6. Format and quality controls.
+7. Processing status panel.
+8. Progress indicator.
+9. Result and download panel.
+10. Error and retry states.
+11. Footer and legal information.
+
+## 5.3 Animation Requirements
+
+Animations should communicate state changes, not distract from the task.
+
+Examples:
+
+- Subtle hover states.
+- Smooth appearance of the video preview.
+- Progress indicator transitions.
+- Loading skeletons.
+- Completion and error transitions.
+- Reduced-motion support for accessibility.
+
+A motion library is optional. CSS transitions should be preferred for simple effects.
+
+## 5.4 Responsive Design
+
+The interface must support:
+
+- Desktop screens.
+- Tablets.
+- Mobile devices.
+
+Controls must remain readable and usable without horizontal overflow.
+
+## 5.5 Theme Support
+
+The initial theme will be dark.
+
+A future enhancement may support light mode and system-theme detection. Theme switching is not a release blocker for the first version.
+
+## 5.6 Accessibility
+
+- Keyboard-accessible controls.
+- Visible focus states.
+- Proper labels for inputs.
+- Accessible error messages.
+- Adequate text contrast.
+- Reduced-motion support.
+- Meaningful status announcements for screen readers.
+
+---
+
+# 6. Technology Stack
+
+## 6.1 Frontend
+
+| Technology | Purpose |
+|---|---|
+| Next.js | React-based web application framework |
+| React | UI components and state-driven rendering |
+| TypeScript | Type safety and maintainability |
+| Tailwind CSS | Responsive styling and design consistency |
+| CSS transitions | Lightweight animations |
+| Framer Motion, optional | More advanced UI transitions |
+| Fetch API | Communication with backend endpoints |
+| Server-Sent Events (SSE) | Live job-status updates |
+
+The frontend will not contain private API credentials or perform unauthorized media extraction.
+
+## 6.2 Backend
+
+| Technology | Purpose |
+|---|---|
+| Python 3.12 | Backend programming language |
+| FastAPI | REST API and request validation |
+| Pydantic | Request and response schemas |
+| Uvicorn | ASGI development server |
+| HTTPX, if required | Requests to approved external APIs |
+| Pytest | Automated backend testing |
+
+Dependencies should be added only when needed. Exact versions must be pinned or locked after the initial environment has been tested.
+
+## 6.3 Media Processing
+
+| Technology | Purpose |
+|---|---|
+| Official source APIs | Retrieve permitted metadata and authorized resources |
+| FFmpeg, optional | Convert or package authorized media |
+| Authorized direct file source | Supply downloadable media where permitted |
+
+FFmpeg is a media-processing tool, not a source-access mechanism. It does not independently enable downloading from YouTube.
+
+## 6.4 Background Processing
+
+For the initial prototype, a limited in-process job manager may be sufficient.
+
+For a public production service, a separate worker and durable queue may be required.
+
+| Technology | Purpose |
+|---|---|
+| Redis, optional | Queue and transient job coordination |
+| Worker process, optional | Execute long-running media tasks |
+| Persistent job storage, optional | Recover job state across restarts |
+
+Redis and persistent storage are not mandatory for the first local prototype. A production design must address what happens when a server restarts while a job is running.
+
+## 6.5 Storage
+
+Initial development may use local temporary storage.
+
+Production deployment should evaluate:
+
+- Object storage for large files.
+- Short-lived download links.
+- Configurable retention.
+- Automated expiration.
+- Storage quotas.
+
+## 6.6 Version Control and Deployment
+
+| Technology | Purpose |
+|---|---|
+| Git | Local version control |
+| GitHub | Remote repository and collaboration |
+| Hosting platform | Frontend deployment |
+| Python-compatible hosting | Backend deployment |
+| HTTPS and domain | Secure public access |
+| Centralized logs | Error diagnosis and operational monitoring |
+
+No hosting provider has been selected yet.
+
+---
+
+# 7. System Architecture
+
+## 7.1 High-Level Data Flow
+
+**Step 1:** User opens the website.
+
+**Step 2:** User pastes a supported video URL.
+
+**Step 3:** Frontend submits the URL to the backend.
+
+**Step 4:** Backend validates the URL and checks the approved source.
+
+**Step 5:** Backend retrieves permitted metadata and determines available capabilities.
+
+**Step 6:** Frontend displays the preview and available actions.
+
+**Step 7:** User starts an authorized processing job.
+
+**Step 8:** Backend creates a job and the worker processes the media where permitted.
+
+**Step 9:** Frontend receives real-time status updates.
+
+**Step 10:** Backend marks the job as completed or failed.
+
+**Step 11:** If completed, the user downloads the output.
+
+**Step 12:** Temporary output is removed according to the retention policy.
+
+## 7.2 Architecture Diagram
+
+User Browser → Next.js Frontend → FastAPI Backend → Approved Source/API → Optional Processing Worker → Temporary Storage → Authorized File Delivery.
+
+SSE will provide job-status updates from the backend to the browser.
+
+For public deployment, the architecture must also include rate limiting, request timeouts, secure configuration, logging, file quotas and worker isolation.
+
+## 7.3 Separation of Responsibilities
+
+The frontend is responsible for presentation and user interaction.
+
+The backend is responsible for validation, permissions, job creation, progress reporting and controlled file delivery.
+
+The media-processing layer is responsible for operations on permitted media.
+
+Storage is responsible for temporary files and expiration.
+
+The system must not trust client-supplied filenames, progress values, source eligibility or filesystem paths.
+
+---
+
+# 8. API Specification
+
+These endpoints are proposed contracts and must be implemented and tested during development.
+
+## 8.1 Health Check
+
+`GET /api/v1/health`
+
+Purpose: Verify backend availability.
+
+Example response:
+
+    {
+      "status": "ok"
+    }
+
+## 8.2 Inspect URL
+
+`POST /api/v1/inspect`
+
+Example request:
+
+    {
+      "url": "https://approved-source.example/video/123"
+    }
+
+The example hostname is illustrative, not an approved production provider.
+
+Possible response fields:
+
+- Source identifier.
+- Title, if available.
+- Thumbnail URL, if available.
+- Duration, if available.
+- Eligibility status.
+- Supported formats.
+- Available quality options.
+- Explanation when the content cannot be downloaded.
+
+## 8.3 Create Job
+
+`POST /api/v1/jobs`
+
+Example request:
+
+    {
+      "source_id": "source-video-id",
+      "format": "mp4",
+      "quality": "720p"
+    }
+
+The server must independently verify that the source identifier, format and quality are valid.
+
+Possible response:
+
+    {
+      "job_id": "generated-job-id",
+      "status": "queued"
+    }
+
+## 8.4 Get Job Status
+
+`GET /api/v1/jobs/{job_id}`
+
+Possible response fields:
+
+- Job identifier.
+- Current status.
+- Progress, if reliably available.
+- Error code, if failed.
+- Output metadata, if completed.
+- Expiration information.
+
+## 8.5 Subscribe to Progress
+
+`GET /api/v1/jobs/{job_id}/events`
+
+The endpoint may use Server-Sent Events to send status changes.
+
+It must support reconnects, avoid leaking information across users, and stop unnecessary work when the client disconnects where appropriate.
+
+## 8.6 Cancel Job
+
+`DELETE /api/v1/jobs/{job_id}`
+
+Purpose: Request cancellation of an active operation.
+
+The backend must verify access rights and return an appropriate status.
+
+## 8.7 Download Output
+
+`GET /api/v1/jobs/{job_id}/download`
+
+The backend must verify that the job is complete, the file exists, the requesting user or session is authorized, and the output has not expired.
+
+The response must use a safe content disposition and appropriate content type.
+
+---
+
+# 9. Data Model
+
+The MVP does not require a relational database if jobs remain short-lived and in-process.
+
+The logical job model should contain:
+
+| Field | Purpose |
+|---|---|
+| job_id | Unique identifier |
+| source_id | Approved source reference |
+| status | Current processing state |
+| created_at | Job creation time |
+| updated_at | Last status update |
+| format | Requested output format |
+| quality | Requested output quality |
+| progress | Reliable percentage or unavailable |
+| output_path | Internal reference to temporary output |
+| expires_at | Output expiration time |
+| error_code | Safe, structured failure reason |
+
+In production, job state should be persisted when required for restart recovery, auditing or multiple workers.
+
+The system must not retain unnecessary personal data or store full user URLs indefinitely without a clear need.
+
+---
+
+# 10. Security and Privacy Requirements
+
+## 10.1 URL Security
+
+- Use a strict source hostname allowlist.
+- Reject local and private network destinations.
+- Block loopback and internal service access.
+- Validate redirect destinations.
+- Prevent SSRF.
+- Apply request timeouts and response-size limits.
+- Do not allow arbitrary protocols or arbitrary server-side URLs.
+
+## 10.2 File Security
+
+- Store files outside public static directories.
+- Generate filenames on the server.
+- Validate actual media type where feasible.
+- Limit file size and processing duration.
+- Restrict access to download endpoints.
+- Clean up failed, cancelled and expired jobs.
+- Isolate media processing from sensitive server resources.
+
+## 10.3 API Key Security
+
+- Store secrets in environment configuration or a secret manager.
+- Never commit secrets to Git.
+- Never expose backend credentials in frontend bundles.
+- Use separate development and production credentials.
+- Rotate exposed credentials immediately.
+
+## 10.4 Abuse Prevention
+
+- Rate-limit URL inspections and job creation.
+- Limit simultaneous jobs per client or account.
+- Apply CPU, memory, disk and network limits.
+- Protect against repeated expensive requests.
+- Log security-relevant events without recording unnecessary sensitive information.
+
+## 10.5 Privacy Requirements
+
+The website must clearly explain:
+
+- What data is collected.
+- Whether submitted URLs are logged.
+- How temporary files are stored.
+- How long files remain available.
+- How users can request deletion where applicable.
+- Whether third-party APIs receive submitted information.
+
+A privacy policy and terms of use must be prepared before public launch.
+
+## 10.6 Compliance
+
+Before enabling a media source, verify its API terms, download permissions, attribution requirements and applicable copyright obligations.
+
+The application must not bypass DRM, access controls or source restrictions.
+
+---
+
+# 11. Non-Functional Requirements
+
+## NFR-01: Performance
+
+- Keep the landing page lightweight.
+- Avoid blocking the interface during processing.
+- Use asynchronous backend operations for long-running tasks.
+- Apply reasonable request timeouts.
+- Load thumbnails efficiently.
+
+Performance targets will be finalized after the hosting environment is selected and measured.
+
+## NFR-02: Reliability
+
+- Handle temporary source failures.
+- Return predictable API responses.
+- Prevent duplicate work where practical.
+- Clean up incomplete jobs.
+- Define behavior for worker or server restarts.
+
+## NFR-03: Scalability
+
+The initial version may run as a single frontend and backend instance.
+
+If usage grows, the system should be able to move processing to independent workers and use persistent queue and storage services without rewriting the entire frontend.
+
+## NFR-04: Maintainability
+
+- Use modular frontend components.
+- Separate API routes from business logic.
+- Use typed request and response schemas.
+- Maintain automated tests.
+- Document configuration and setup.
+- Keep secrets out of source control.
+
+## NFR-05: Compatibility
+
+Support current stable versions of major desktop and mobile browsers, subject to testing.
+
+## NFR-06: Observability
+
+Log:
+
+- Job creation and completion.
+- Processing duration.
+- Failure categories.
+- Rate-limit events.
+- Resource-limit violations.
+
+Logs must not expose API keys, unnecessary personal data or sensitive internal details.
+
+---
+
+# 12. Complete Development Roadmap
+
+## Phase 1 — Requirements and Environment Setup
+
+**Objective:** Establish a reproducible development environment and project baseline.
+
+Tasks:
+
+1. Finalize the PRD.
+2. Verify installed versions of Node.js, npm, Python and Git.
+3. Explain missing tools and installation commands before installation.
+4. Obtain approval before installing tools or packages.
+5. Create the project directory structure.
+6. Initialize Git.
+7. Configure `.gitignore`.
+8. Create the frontend scaffold.
+9. Create the backend scaffold.
+10. Verify that both applications start locally.
+
+**Deliverables:** Project structure, working frontend shell, working backend health endpoint and setup documentation.
+
+**Exit criteria:** Both applications run locally, and the baseline is committed only with explicit approval.
+
+## Phase 2 — Frontend Foundation and Design System
+
+**Objective:** Build the complete visual foundation.
+
+Tasks:
+
+1. Create the landing page.
+2. Build navigation and footer.
+3. Implement the URL input card.
+4. Create loading, error and empty states.
+5. Implement responsive layouts.
+6. Define typography, spacing, borders and theme tokens.
+7. Add subtle transitions and reduced-motion support.
+8. Create reusable UI components.
+9. Test mobile and desktop layouts.
+
+**Deliverables:** Responsive frontend with realistic interaction states.
+
+**Exit criteria:** The UI works with mock responses, and mock data is clearly separated from real backend responses.
+
+## Phase 3 — Backend Foundation
+
+**Objective:** Build the API and validation layer.
+
+Tasks:
+
+1. Initialize FastAPI.
+2. Create versioned API routes.
+3. Define Pydantic schemas.
+4. Implement health checks.
+5. Implement URL validation.
+6. Create the approved-host registry.
+7. Add structured error responses.
+8. Add logging and request limits.
+9. Write unit tests.
+
+**Deliverables:** Functional backend foundation.
+
+**Exit criteria:** Valid and invalid requests behave as specified, and the automated tests pass.
+
+## Phase 4 — Authorized Source Integration
+
+**Objective:** Connect the application to approved media sources.
+
+Tasks:
+
+1. Select the initial provider based on documented capabilities.
+2. Review source terms and access permissions.
+3. Configure required credentials securely.
+4. Implement metadata retrieval.
+5. Implement source eligibility checks.
+6. Map source errors to application error codes.
+7. Display available formats and qualities.
+8. Test unavailable, restricted and unsupported content.
+
+**Deliverables:** Real source inspection and capability reporting.
+
+**Exit criteria:** The backend accurately reports what the source supports and never advertises unauthorized download functionality.
+
+## Phase 5 — Media Processing and Download Delivery
+
+**Objective:** Implement authorized media processing.
+
+Tasks:
+
+1. Define a media-source adapter interface.
+2. Implement the permitted download or export mechanism.
+3. Add processing validation.
+4. Enforce file-size and time limits.
+5. Add output verification.
+6. Implement temporary storage.
+7. Deliver completed files securely.
+8. Add cleanup rules.
+9. Test interrupted and failed operations.
+
+**Deliverables:** End-to-end media processing for at least one verified authorized source.
+
+**Exit criteria:** An eligible test file can be processed, validated, downloaded and removed according to retention rules.
+
+## Phase 6 — Job Management and Live Progress
+
+**Objective:** Implement real-time task tracking.
+
+Tasks:
+
+1. Create the job state machine.
+2. Implement job creation.
+3. Implement job-status retrieval.
+4. Implement SSE events.
+5. Connect frontend progress UI.
+6. Add cancellation.
+7. Add retry for recoverable failures.
+8. Handle reconnects and client disconnections.
+9. Verify that progress values reflect actual processing.
+
+**Deliverables:** Real-time processing dashboard.
+
+**Exit criteria:** Queued, processing, completed, failed and cancelled states are handled correctly.
+
+## Phase 7 — Public-Service Hardening
+
+**Objective:** Prepare the application for untrusted public traffic.
+
+Tasks:
+
+1. Add rate limiting.
+2. Configure request and file-size limits.
+3. Isolate processing workers where required.
+4. Add quotas for CPU, memory and disk.
+5. Protect job and download access.
+6. Configure safe secrets management.
+7. Test SSRF and malicious URL cases.
+8. Configure temporary-file cleanup.
+9. Add operational logs and alerts.
+
+**Deliverables:** Security-hardened application configuration.
+
+**Exit criteria:** Security tests pass, resource limits are enforced and failure recovery is documented.
+
+## Phase 8 — Testing and Quality Assurance
+
+**Objective:** Validate the complete application.
+
+Testing categories:
+
+- Unit tests.
+- API integration tests.
+- Frontend component tests.
+- End-to-end tests.
+- URL validation tests.
+- Media-processing tests.
+- Cancellation and retry tests.
+- Storage-cleanup tests.
+- Security tests.
+- Responsive UI tests.
+- Browser compatibility tests.
+- Basic load and concurrency tests.
+
+**Deliverables:** Test report, issue list and verified release candidate.
+
+**Exit criteria:** No unresolved critical or high-severity defects remain, and all release-blocking tests pass.
+
+## Phase 9 — Deployment and Production Configuration
+
+**Objective:** Deploy the application to a public environment.
+
+Tasks:
+
+1. Select hosting providers.
+2. Configure production environment variables.
+3. Deploy frontend and backend.
+4. Configure HTTPS and domain.
+5. Configure API access and CORS.
+6. Set up production storage.
+7. Configure job workers if required.
+8. Verify logs and monitoring.
+9. Run smoke tests against production.
+10. Document rollback and recovery procedures.
+
+**Deliverables:** Public deployment and production configuration documentation.
+
+**Exit criteria:** Public users can access the website, and all enabled features work under production settings.
+
+## Phase 10 — Documentation and Final Release
+
+**Objective:** Deliver a maintainable release.
+
+Tasks:
+
+1. Finalize README.
+2. Document installation and startup.
+3. Document environment variables.
+4. Document API endpoints.
+5. Document supported sources and limitations.
+6. Document privacy and retention behavior.
+7. Document deployment.
+8. Record known limitations.
+9. Verify Git history and release state.
+10. Prepare a final release report.
+
+**Deliverables:** Release-ready application, source code, documentation and test results.
+
+**Exit criteria:** Another developer can set up and run the project using the documentation without relying on undocumented manual steps.
+
+---
+
+# 13. Testing Strategy
+
+## 13.1 Functional Test Cases
+
+| Test | Expected Result |
+|---|---|
+| Valid supported URL | Inspection succeeds |
+| Malformed URL | Validation error |
+| Unsupported hostname | Request rejected |
+| Source metadata unavailable | Fallback state displayed |
+| Unauthorized download | Download action unavailable |
+| Valid authorized job | Job is created |
+| Processing succeeds | Completed state and file available |
+| Processing fails | Error state and safe message |
+| User cancels job | Cancellation handled |
+| Output expires | File cannot be downloaded |
+| Repeated submission | Duplicate work appropriately controlled |
+| Unauthorized job access | Access denied |
+
+## 13.2 Security Test Cases
+
+- URL targeting a private IP address.
+- URL targeting localhost.
+- Redirect to an unapproved hostname.
+- Oversized media response.
+- Invalid or forged job identifier.
+- Repeated requests exceeding limits.
+- Attempt to access another job's file.
+- Malicious filename or file path.
+- API credentials accidentally included in frontend output.
+- Temporary file remaining after cancellation.
+
+## 13.3 Release Gate
+
+A release cannot proceed if any critical authorization, file-access, SSRF or secret-exposure defect remains unresolved.
+
+---
+
+# 14. Configuration and Installation Policy
+
+Before installing any new tool or package, the following information must be presented:
+
+1. Tool or package name.
+2. Purpose.
+3. Reason it is needed.
+4. Installation command.
+5. Expected system impact.
+6. Whether an alternative exists.
+7. Whether it is mandatory for the current phase.
+
+No installation should occur without explicit approval.
+
+The development workflow should reuse tools already installed wherever practical.
+
+The project should also maintain a clear separation between mock/demo responses and real production integrations. The UI must not present fabricated download progress or simulated success as a real completed download.
+
+---
+
+# 15. Risks and Mitigation
+
+| Risk | Mitigation |
+|---|---|
+| Source does not permit downloading | Display viewing or permitted export options |
+| API quota exhaustion | Rate limits, caching where permitted, quota monitoring |
+| Malicious URLs | Host allowlist, redirect checks and SSRF protection |
+| Large files exhaust storage | Quotas, size limits and automatic cleanup |
+| Long-running jobs time out | Worker-based processing and explicit job states |
+| Server restarts lose jobs | Persistent job storage when required |
+| Unauthorized file access | Session/job authorization and short-lived links |
+| High public traffic | Queue, quotas and controlled concurrency |
+| False progress display | Report measured progress only |
+| Deployment configuration leaks secrets | Server-side secrets and deployment checks |
+
+---
+
+# 16. Future Enhancements
+
+Possible improvements after the MVP:
+
+- Additional authorized media providers.
+- Light/dark theme switching.
+- Download history for signed-in users.
+- User accounts and quotas.
+- More export formats.
+- Persistent job history.
+- Cloud object storage.
+- Background queue scaling.
+- Usage analytics with privacy safeguards.
+- Progressive Web App support.
+- Localization and additional languages.
+
+Each enhancement requires its own scope review and acceptance criteria.
+
+---
+
+# 17. Definition of Done
+
+A feature is complete only when:
+
+- Requirements are implemented.
+- Input validation and error handling are present.
+- Automated tests cover the relevant behavior.
+- The feature does not violate the approved source-access scope.
+- No secrets are exposed.
+- The UI works on supported screen sizes.
+- Documentation is updated.
+- No fabricated progress or success state is shown.
+- The change is reviewed before release.
+- Git commit or remote push occurs only with explicit approval.
+
+---
+
+# 18. Final Project Summary
+
+**Product:** Public Video Downloader Website
+
+**Frontend:** Next.js, React, TypeScript and Tailwind CSS.
+
+**Backend:** Python, FastAPI, Pydantic and Uvicorn.
+
+**Progress tracking:** Server-Sent Events.
+
+**Media processing:** Approved source integrations and optional FFmpeg.
+
+**Testing:** Pytest, frontend tests, API integration tests and end-to-end testing.
+
+**Version control:** Git and GitHub.
+
+**Deployment:** To be selected after local validation and security testing.
+
+**Initial release:** URL inspection, authorized media processing, accurate progress tracking, secure file delivery and a premium responsive dark UI.
+
+**Development strategy:** Build and verify one phase at a time. Explain new installations before executing them, obtain approval, test the current phase and only then proceed to the next phase.
+
+**Final acceptance condition:** The website must provide a real, secure and maintainable workflow for supported, authorized media—not merely an attractive interface that promises downloads it cannot legally or technically deliver.
