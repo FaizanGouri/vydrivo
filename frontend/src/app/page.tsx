@@ -305,7 +305,7 @@ export default function Home() {
         </div>
       )}
 
-      <main className="stage relative max-w-[1240px] mx-auto min-h-[640px] rounded-[26px] bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden shadow-[0_30px_60px_-25px_rgba(20,60,35,0.55)] px-6 sm:px-11 pt-6 sm:pt-7 pb-7 flex flex-col justify-between">
+      <main className="stage relative w-full min-h-screen bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden px-6 sm:px-14 lg:px-20 pt-8 pb-8 flex flex-col justify-between">
         
         {/* Background Big Watermark Title with Continuous Floating Levitation */}
         <div 
