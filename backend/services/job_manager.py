@@ -1,6 +1,8 @@
 import os
+import sys
 import uuid
 import time
+import shutil
 import asyncio
 import threading
 from typing import Dict, Any, Optional
@@ -8,6 +10,37 @@ import yt_dlp
 
 DOWNLOADS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "downloads"))
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
+def get_ffmpeg_path() -> Optional[str]:
+    """
+    Finds FFmpeg binary from environment, virtualenv Scripts,
+    imageio-ffmpeg package, or system PATH.
+    """
+    # 1. Explicit environment variable
+    env_path = os.environ.get("FFMPEG_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    # 2. Inside Python virtual environment Scripts directory
+    venv_ffmpeg = os.path.join(os.path.dirname(sys.executable), "ffmpeg.exe")
+    if os.path.exists(venv_ffmpeg):
+        return venv_ffmpeg
+
+    # 3. Bundled imageio-ffmpeg binary
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if exe and os.path.exists(exe):
+            return exe
+    except Exception:
+        pass
+
+    # 4. Global PATH
+    bin_path = shutil.which("ffmpeg")
+    if bin_path:
+        return bin_path
+
+    return None
 
 class Job:
     def __init__(self, job_id: str, url: str, format_type: str, quality: str):
@@ -105,14 +138,11 @@ class JobManager:
                 job.update_progress(99.0, "Processing...", "")
 
         try:
-            import shutil
-
-            # Auto-detect FFmpeg from environment, PATH, or local directory
-            ffmpeg_path = os.environ.get("FFMPEG_PATH")
-            if not ffmpeg_path:
-                ffmpeg_bin = shutil.which("ffmpeg")
-                if ffmpeg_bin:
-                    ffmpeg_path = os.path.dirname(ffmpeg_bin)
+            ffmpeg_path = get_ffmpeg_path()
+            if ffmpeg_path:
+                ffmpeg_dir = os.path.dirname(ffmpeg_path)
+                if ffmpeg_dir not in os.environ.get("PATH", ""):
+                    os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
 
             ydl_opts: Dict[str, Any] = {
                 'outtmpl': output_template,
@@ -120,7 +150,7 @@ class JobManager:
                 'quiet': True,
                 'no_warnings': True,
             }
-            if ffmpeg_path and os.path.exists(ffmpeg_path):
+            if ffmpeg_path:
                 ydl_opts['ffmpeg_location'] = ffmpeg_path
 
             if job.format_type == 'image':
@@ -149,28 +179,52 @@ class JobManager:
                     return
 
             if job.format_type == 'audio':
-                ydl_opts.update({
-                    'format': 'bestaudio/best',
-                    'postprocessors': [{
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '320' if '320' in job.quality else '128',
-                    }],
-                })
-            else:
-                # Video format
-                height = job.quality.replace('p', '')
-                if height.isdigit():
-                    h = int(height)
+                if ffmpeg_path:
                     ydl_opts.update({
-                        'format': f'bestvideo[height<={h}]+bestaudio/best[height<={h}]/best',
-                        'merge_output_format': 'mp4',
+                        'format': 'bestaudio/best',
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '320' if '320' in job.quality else '128',
+                        }],
                     })
                 else:
                     ydl_opts.update({
-                        'format': 'bestvideo+bestaudio/best',
+                        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+                    })
+            else:
+                # Video format
+                is_insta = 'instagram.com' in job.url
+                height = job.quality.replace('p', '')
+
+                if is_insta:
+                    # For Instagram, prioritize single pre-muxed MP4 stream with audio,
+                    # and fallback to separate streams merged with FFmpeg
+                    ydl_opts.update({
+                        'format': 'best[ext=mp4]/best/bestvideo+bestaudio',
                         'merge_output_format': 'mp4',
                     })
+                elif height.isdigit():
+                    h = int(height)
+                    if ffmpeg_path:
+                        ydl_opts.update({
+                            'format': f'bestvideo[height<={h}]+bestaudio/best[height<={h}]/best',
+                            'merge_output_format': 'mp4',
+                        })
+                    else:
+                        ydl_opts.update({
+                            'format': f'best[height<={h}]/best',
+                        })
+                else:
+                    if ffmpeg_path:
+                        ydl_opts.update({
+                            'format': 'bestvideo+bestaudio/best',
+                            'merge_output_format': 'mp4',
+                        })
+                    else:
+                        ydl_opts.update({
+                            'format': 'best',
+                        })
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(job.url, download=True)
@@ -179,7 +233,14 @@ class JobManager:
                 # If audio was converted to mp3, the extension changed
                 if job.format_type == 'audio':
                     base, _ = os.path.splitext(downloaded_file)
-                    downloaded_file = base + ".mp3"
+                    mp3_path = base + ".mp3"
+                    if os.path.exists(mp3_path):
+                        downloaded_file = mp3_path
+                elif ydl_opts.get('merge_output_format'):
+                    base, _ = os.path.splitext(downloaded_file)
+                    merged_path = base + "." + ydl_opts['merge_output_format']
+                    if os.path.exists(merged_path):
+                        downloaded_file = merged_path
 
                 if os.path.exists(downloaded_file):
                     job.file_path = downloaded_file

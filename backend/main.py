@@ -1,3 +1,11 @@
+import os
+import sys
+
+# Ensure venv Scripts directory (where ffmpeg.exe resides) is in PATH
+scripts_dir = os.path.dirname(sys.executable)
+if scripts_dir not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = scripts_dir + os.pathsep + os.environ.get("PATH", "")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.api import router as api_router
