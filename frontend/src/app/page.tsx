@@ -73,6 +73,50 @@ export default function Home() {
     };
   }, []);
 
+  // Loading Screen State & Animation Loop
+  const [showLoader, setShowLoader] = useState(true);
+  const [loaderDone, setLoaderDone] = useState(false);
+  const [loaderPct, setLoaderPct] = useState(0);
+  const [loaderText, setLoaderText] = useState("Gathering your favourite platforms…");
+
+  useEffect(() => {
+    const MIN_TIME = 4200; // 4.2 seconds
+    const steps: [number, string][] = [
+      [0, "Gathering your favourite platforms…"],
+      [30, "Mixing it all together…"],
+      [75, "Almost there…"],
+      [100, "Ready!"]
+    ];
+
+    const start = performance.now();
+    let animId: number;
+
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / MIN_TIME, 1);
+      const eased = 1 - Math.pow(1 - t, 2);
+      const pct = Math.round(eased * 100);
+      setLoaderPct(pct);
+
+      for (const [at, label] of steps) {
+        if (pct >= at) setLoaderText(label);
+      }
+
+      if (pct >= 100) {
+        setTimeout(() => {
+          setLoaderDone(true); // slides up
+          setTimeout(() => {
+            setShowLoader(false); // remove from DOM
+          }, 1000);
+        }, 350);
+        return;
+      }
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
   const handleInspect = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanUrl = url.trim();
@@ -195,15 +239,81 @@ export default function Home() {
   };
 
   return (
-    <main className="stage relative max-w-[1240px] mx-auto min-h-[640px] rounded-[26px] bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden shadow-[0_30px_60px_-25px_rgba(20,60,35,0.55)] px-6 sm:px-11 pt-6 sm:pt-7 pb-7 flex flex-col justify-between">
-      
-      {/* Background Big Watermark Title with Continuous Floating Levitation */}
-      <div 
-        aria-hidden="true" 
-        className="floating-watermark absolute left-1/2 top-14 text-[clamp(100px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/60 via-white/30 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
-      >
-        VYDRIVO
-      </div>
+    <>
+      {/* ================= LOADING SCREEN ================= */}
+      {showLoader && (
+        <div className={`loader ${loaderDone ? "done" : ""}`} role="status" aria-label="Loading VYDRIVO">
+          <div className="l-ghost" aria-hidden="true">VYDRIVO</div>
+
+          <div className="l-center">
+            <div className="mix" aria-hidden="true">
+              <div className="blob"></div>
+              {/* YouTube Logo */}
+              <div className="lg yt">
+                <svg viewBox="0 0 64 64">
+                  <rect x="3" y="13" width="58" height="38" rx="12" fill="#ff0000" />
+                  <path d="M26 23v18l16-9z" fill="#fff" />
+                </svg>
+              </div>
+              {/* Instagram Logo */}
+              <div className="lg ig">
+                <svg viewBox="0 0 64 64">
+                  <defs>
+                    <linearGradient id="igG" x1="0" y1="1" x2="1" y2="0">
+                      <stop offset="0" stopColor="#fdc468" />
+                      <stop offset="0.5" stopColor="#df4996" />
+                      <stop offset="1" stopColor="#4f5bd5" />
+                    </linearGradient>
+                  </defs>
+                  <rect x="5" y="5" width="54" height="54" rx="16" fill="url(#igG)" />
+                  <circle cx="32" cy="32" r="12" fill="none" stroke="#fff" strokeWidth="4.5" />
+                  <circle cx="46" cy="18" r="3.6" fill="#fff" />
+                </svg>
+              </div>
+              {/* Pinterest Logo */}
+              <div className="lg pi">
+                <svg viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="29" fill="#e60023" />
+                  <text x="32" y="45" textAnchor="middle" fontFamily="Georgia,serif" fontSize="38" fontWeight="700" fill="#fff">P</text>
+                </svg>
+              </div>
+              {/* Facebook Logo */}
+              <div className="lg fb">
+                <svg viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="29" fill="#1877f2" />
+                  <text x="35" y="50" textAnchor="middle" fontFamily="Arial,sans-serif" fontSize="46" fontWeight="700" fill="#fff">f</text>
+                </svg>
+              </div>
+              {/* VYDRIVO animated letters */}
+              <div className="l-word">
+                {"VYDRIVO".split("").map((char, idx) => (
+                  <span key={idx} style={{ ["--i" as string]: idx } as React.CSSProperties}>
+                    {char}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="l-bar" aria-hidden="true">
+              <i style={{ width: `${loaderPct}%` }}></i>
+            </div>
+            <div className="l-meta">
+              <span>{loaderText}</span>
+              <b>{loaderPct}%</b>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="stage relative max-w-[1240px] mx-auto min-h-[640px] rounded-[26px] bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden shadow-[0_30px_60px_-25px_rgba(20,60,35,0.55)] px-6 sm:px-11 pt-6 sm:pt-7 pb-7 flex flex-col justify-between">
+        
+        {/* Background Big Watermark Title with Continuous Floating Levitation */}
+        <div 
+          aria-hidden="true" 
+          className="floating-watermark absolute left-1/2 top-14 text-[clamp(100px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/60 via-white/30 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
+        >
+          VYDRIVO
+        </div>
 
       {/* Top Navigation */}
       <nav className="relative z-10 flex items-center justify-between gap-4">
@@ -414,5 +524,6 @@ export default function Home() {
         <span>Download only content you own or have permission to save.</span>
       </footer>
     </main>
-  );
+  </>
+);
 }
