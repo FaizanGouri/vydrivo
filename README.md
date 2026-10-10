@@ -1,57 +1,116 @@
-# TubeFetch - Modern YouTube & Shorts Downloader
+# VYDRIVO – Modern YouTube & Shorts Video Downloader
 
-A full-stack, high-performance web application to inspect and download YouTube videos and Shorts in various resolutions (1080p Full HD, 720p HD, 480p, 360p) or export high-quality MP3 audio with real-time SSE progress tracking.
-
----
-
-## Features
-
-- **YouTube Videos & Shorts Support**: Seamless extraction for standard videos and vertical Shorts.
-- **Multi-Format & Quality Selection**: 1080p Full HD, 720p, 480p, 360p (MP4) and 320 kbps / 128 kbps (MP3).
-- **FFmpeg Integration**: Automatic lossless video + audio stream merging.
-- **Real-Time Live Progress**: Real progress percentages, download speed, and ETA via Server-Sent Events (SSE).
-- **Premium Charcoal Dark UI**: Clean, responsive interface built with Next.js and Tailwind CSS.
-- **Automatic Storage Management**: Self-cleaning temporary storage to manage disk quotas.
+<p align="center">
+  <b>A sleek, high-performance web application to inspect and download YouTube videos & Shorts in high quality (1080p Full HD, 720p HD, 480p) or extract crystal-clear MP3 audio with real-time SSE progress streaming.</b>
+</p>
 
 ---
 
-## Tech Stack
+## 🌟 Highlights & Features
 
-- **Frontend**: Next.js 16 (React, TypeScript), Tailwind CSS, Lucide Icons
-- **Backend**: Python 3.12+, FastAPI, Pydantic, Uvicorn, yt-dlp, FFmpeg
+- **Full-Screen Forest Green Aesthetic**: Clean, responsive, and immersive edge-to-edge design.
+- **Dynamic Preloader Animation**: Multi-platform logo gathering (YouTube, Instagram, Pinterest, Facebook) with fluid color mixing and animated **VYDRIVO** letter formation.
+- **Continuous Floating Levitation**: Smooth floating animation for the big background watermark and verified counter badge.
+- **Universal YouTube Support**: Works seamlessly with regular YouTube videos (`youtube.com/watch?v=...`) and vertical Shorts (`youtube.com/shorts/...`).
+- **Lossless Stream Merging via FFmpeg**: High-resolution video tracks (1080p, 720p) are merged with audio streams losslessly into standard MP4.
+- **High-Bitrate MP3 Extraction**: Extract audio directly to MP3 (up to 320 kbps).
+- **Accurate Real-Time Progress**: Powered by Server-Sent Events (SSE) reporting real download percentage, speed, and ETA.
+- **Zero Fabrication**: Only genuine backend progress and verified streams are shown.
+- **Self-Cleaning Storage**: Background worker periodically deletes temporary files older than 30 minutes to manage disk space.
 
 ---
 
-## Getting Started
+## 🛠️ Tech Stack
+
+### Frontend
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, React 19)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Typography**: [Outfit](https://fonts.google.com/specimen/Outfit) via Google Fonts
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Language**: TypeScript
+
+### Backend
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
+- **Extraction Engine**: [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+- **Media Transcoder**: [FFmpeg 9.0+](https://ffmpeg.org/)
+- **Live Updates**: Server-Sent Events ([sse-starlette](https://github.com/sysid/sse-starlette))
+- **ASGI Server**: [Uvicorn](https://www.uvicorn.org/)
+
+---
+
+## 🚀 Getting Started
 
 ### 1. Prerequisites
-- [Node.js](https://nodejs.org/) (v18+)
-- [Python](https://www.python.org/) (v3.10+)
-- [FFmpeg](https://ffmpeg.org/) installed and available in PATH.
+- **Node.js** (v18+)
+- **Python** (v3.10+)
+- **FFmpeg** installed and accessible in your system `PATH` (e.g., via `winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` on macOS, or `apt install ffmpeg` on Linux).
+
+---
 
 ### 2. Backend Setup
+
 ```bash
+# Navigate to backend directory
 cd backend
+
+# Create and activate Python virtual environment
 python -m venv venv
+
 # On Windows:
 .\venv\Scripts\activate
 # On Linux/macOS:
 source venv/bin/activate
 
+# Install backend dependencies
 pip install -r requirements.txt
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
-```
 
-### 3. Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
+# Start the FastAPI server
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+The backend API will be live at `http://127.0.0.1:8000`.
 
 ---
 
-## License
-MIT License. Built for educational and personal media management purposes.
+### 3. Frontend Setup
+
+```bash
+# In a new terminal, navigate to frontend directory
+cd frontend
+
+# Install npm dependencies
+npm install
+
+# Start Next.js development server
+npm run dev
+```
+
+Open your browser and navigate to:
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+---
+
+## 📡 API Endpoints Overview
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/health` | Service health status |
+| `POST` | `/api/v1/inspect` | Inspect YouTube/Shorts URL, returns title, thumbnail, duration, view count, and available stream qualities |
+| `POST` | `/api/v1/jobs` | Initializes a media download/conversion job |
+| `GET` | `/api/v1/jobs/{job_id}` | Fetch current job status and progress |
+| `GET` | `/api/v1/jobs/{job_id}/events` | Real-time Server-Sent Events (SSE) progress stream |
+| `GET` | `/api/v1/jobs/{job_id}/download` | Secure file delivery with RFC 5987 Unicode filename headers |
+
+---
+
+## 🔒 Security & Privacy
+
+- **No Personal Information Stored**: Downloads directory is ignored by Git; no user credentials or logs are tracked.
+- **SSRF & Network Hardening**: Strict YouTube URL regex verification prevents internal network probing.
+- **RFC 5987 Compliant Filename Encoding**: Protects download headers against emoji and international Unicode character encoding crashes.
+- **Automatic TTL Deletion**: Temporary converted files expire and are purged automatically.
+
+---
+
+## 📄 License
+
+This project is open-source and intended for personal educational media management.
