@@ -230,106 +230,53 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section (Balanced 2-Column Layout Without Ninja Mascot) */}
-      <section className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] items-center gap-12 pt-8">
+      {/* Hero Section (Centered Clean & Focused Downloader) */}
+      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center py-10">
         
-        {/* Left Column: Copy & Downloader Input */}
-        <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-          
-          {/* Badge with pulse */}
-          <div className="pulse-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.16] border border-white/[0.35] mb-5 shadow-sm">
-            <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
-              ✓
-            </i>
-            <div className="text-left">
-              <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">+10 lakh</b>
-              <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">VIDEOS SAVED</small>
-            </div>
+        {/* Badge with pulse */}
+        <div className="pulse-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.16] border border-white/[0.35] mb-5 shadow-sm">
+          <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
+            ✓
+          </i>
+          <div className="text-left">
+            <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">+10 lakh</b>
+            <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">VIDEOS SAVED</small>
           </div>
-
-          <h1 className="text-[clamp(36px,4.5vw,56px)] leading-[1.06] font-bold tracking-[-0.02em] text-white max-w-[14ch]">
-            Save any video you love
-          </h1>
-
-          <p className="mt-2.5 italic font-light text-[20px] text-white/80">
-            paste the link, pick a format, done
-          </p>
-
-          <p className="mt-4 max-w-[42ch] text-[15px] leading-relaxed text-white/85">
-            Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop.
-          </p>
-
-          {/* Input Box Form */}
-          <form onSubmit={handleInspect} className="mt-7 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[480px] shadow-[0_14px_30px_-14px_rgba(0,0,0,0.4)] focus-within:ring-2 focus-within:ring-[#f2b632]">
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Paste YouTube link here"
-              className="flex-1 min-w-0 border-0 bg-transparent px-4 py-2 font-medium text-[15px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
-            />
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="border-0 cursor-pointer font-semibold text-[15px] px-7 py-3.5 rounded-full bg-[#1f2a24] hover:bg-[#0f1612] text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download"}
-            </button>
-          </form>
-
-          {/* Feedback Messages */}
-          {msg && <p className="mt-3 text-[14px] text-white font-medium">{msg}</p>}
-          {error && <p className="mt-3 text-[14px] text-[#ffe29a] font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
         </div>
 
-        {/* Right Column: Cards (Format Options & Dynamic Download Result) */}
-        <div className="flex flex-col gap-4 w-full" id="formats">
-          
-          {/* Card 1: MP4 Video */}
-          <article className="clip-card p-5 rounded-[22px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
-            <h3 className="text-[18px] font-bold">MP4 Video</h3>
-            <p className="text-[13px] leading-snug text-[#53665a] mt-1">Up to 1080p. Plays on every phone and TV.</p>
-            <div className="my-3.5 h-20 rounded-xl bg-gradient-to-tr from-[#ffb347] to-[#f2761f] grid place-items-center text-[38px] font-extrabold text-[#2b1a05]">
-              ▶
-            </div>
-            <button 
-              onClick={() => {
-                if (videoData) {
-                  const v = videoData.options.find(o => o.type === "video");
-                  if (v) setSelectedOption(v);
-                }
-              }}
-              className="w-full py-2.5 px-4 rounded-full bg-[#f2b632] hover:bg-[#e0a72c] text-[#1f2a24] font-semibold text-[13px] transition-colors cursor-pointer"
-            >
-              See qualities
-            </button>
-          </article>
+        <h1 className="text-[clamp(36px,5vw,62px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[18ch]">
+          Save any video you love
+        </h1>
 
-          {/* Card 2: MP3 Audio */}
-          <article className="clip-card p-5 rounded-[22px] bg-[#f3f8f1]/90 text-[#1f2a24] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.5)]">
-            <h3 className="text-[18px] font-bold">MP3 Audio</h3>
-            <p className="text-[13px] leading-snug text-[#53665a] mt-1">Keep only the sound. Great for music &amp; podcasts.</p>
-            <div className="my-3.5 h-20 rounded-xl bg-gradient-to-tr from-[#27312b] to-[#0e1511] grid place-items-center text-[38px] font-extrabold text-[#7fc79a]">
-              ♪
-            </div>
-            <button 
-              onClick={() => {
-                if (videoData) {
-                  const a = videoData.options.find(o => o.type === "audio");
-                  if (a) setSelectedOption(a);
-                }
-              }}
-              className="w-full py-2.5 px-4 rounded-full bg-[#f2b632] hover:bg-[#e0a72c] text-[#1f2a24] font-semibold text-[13px] transition-colors cursor-pointer"
-            >
-              See bitrates
-            </button>
-          </article>
+        <p className="mt-3 italic font-light text-[22px] text-white/85">
+          paste the link, pick a format, done
+        </p>
 
-          <p className="text-[13px] text-white/80 pl-1.5 hidden lg:block" id="how">
-            <b className="block text-white">How it works</b>
-            Paste link &rarr; choose format &rarr; save.
-          </p>
-        </div>
+        <p className="mt-4 max-w-[48ch] text-[15px] sm:text-[16px] leading-relaxed text-white/90">
+          Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop.
+        </p>
+
+        {/* Input Box Form */}
+        <form onSubmit={handleInspect} className="mt-8 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[540px] shadow-[0_16px_35px_-12px_rgba(0,0,0,0.4)] focus-within:ring-3 focus-within:ring-[#f2b632]">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Paste YouTube link here"
+            className="flex-1 min-w-0 border-0 bg-transparent px-5 py-2.5 font-medium text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
+          />
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="border-0 cursor-pointer font-semibold text-[15px] px-8 py-3.5 rounded-full bg-[#1f2a24] hover:bg-[#0f1612] text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2 shadow-md"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download"}
+          </button>
+        </form>
+
+        {/* Feedback Messages */}
+        {msg && <p className="mt-4 text-[14px] text-white font-medium">{msg}</p>}
+        {error && <p className="mt-4 text-[14px] text-[#ffe29a] font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
       </section>
 
       {/* Dynamic Video Preview / Processing Modal / Drawer if video is fetched */}
