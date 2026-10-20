@@ -67,5 +67,42 @@ class TestExtraction(unittest.TestCase):
         self.assertIn("audio", types)
         self.assertIn("image", types)
 
+    @patch("yt_dlp.YoutubeDL")
+    def test_youtube_shorts_extraction_mock(self, mock_ydl_class):
+        mock_ydl = MagicMock()
+        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+
+        mock_ydl.extract_info.return_value = {
+            "id": "0ZX0jCAvfPY",
+            "title": "How to Deploy a NextJS Website to Vercel",
+            "thumbnail": "https://i.ytimg.com/vi/0ZX0jCAvfPY/maxresdefault.jpg",
+            "duration": 58,
+            "uploader": "Developer",
+            "view_count": 50000,
+            "formats": [
+                {"height": 1080, "vcodec": "avc1", "ext": "mp4"},
+                {"format_id": "140", "vcodec": "none", "acodec": "mp4a", "ext": "m4a"},
+            ]
+        }
+
+        info = extract_video_info("https://www.youtube.com/shorts/0ZX0jCAvfPY")
+
+        self.assertIsNotNone(info)
+        self.assertEqual(info["id"], "0ZX0jCAvfPY")
+        self.assertTrue(info["is_short"])
+        self.assertEqual(info["platform"], "youtube")
+        
+        # Verify that extract_info was called with normalized watch URL
+        mock_ydl.extract_info.assert_called_with("https://www.youtube.com/watch?v=0ZX0jCAvfPY", download=False)
+        
+        # Verify extractor_args were passed in constructor
+        call_args = mock_ydl_class.call_args[0][0]
+        self.assertIn("extractor_args", call_args)
+        self.assertIn("youtube", call_args["extractor_args"])
+        self.assertEqual(
+            call_args["extractor_args"]["youtube"]["player_client"],
+            ['ios', 'android', 'mweb', 'web']
+        )
+
 if __name__ == "__main__":
     unittest.main()

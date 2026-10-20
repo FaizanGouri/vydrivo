@@ -118,11 +118,27 @@ def extract_video_info(url: str) -> Dict[str, Any]:
     Extracts metadata, thumbnails, duration, and available quality formats
     using yt-dlp for YouTube, Instagram, Facebook, and Pinterest without downloading media.
     """
+    # Normalize YouTube shorts or shortlinks to standard watch URLs for robust player extraction
+    clean_url = url.strip()
+    if "youtube.com/shorts/" in clean_url:
+        m = re.search(r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})', clean_url)
+        if m:
+            clean_url = f"https://www.youtube.com/watch?v={m.group(1)}"
+    elif "youtu.be/" in clean_url:
+        m = re.search(r'youtu\.be/([a-zA-Z0-9_-]{11})', clean_url)
+        if m:
+            clean_url = f"https://www.youtube.com/watch?v={m.group(1)}"
+
     ydl_opts = {
         'skip_download': True,
         'quiet': True,
         'no_warnings': True,
         'extract_flat': False,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios', 'android', 'mweb', 'web']
+            }
+        }
     }
 
     is_insta = is_valid_instagram_url(url)
@@ -132,7 +148,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
     info = None
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = ydl.extract_info(clean_url, download=False)
     except Exception as e:
         # If it's a Pinterest link and yt-dlp reports No video formats found
         if is_pin or "No video formats found" in str(e):

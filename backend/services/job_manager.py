@@ -265,12 +265,27 @@ class JobManager:
             # ----------------------------------------------------
             # 2. Audio or Video Processing with yt-dlp
             # ----------------------------------------------------
+            download_url = job.url.strip()
+            if "youtube.com/shorts/" in download_url:
+                m = re.search(r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})', download_url)
+                if m:
+                    download_url = f"https://www.youtube.com/watch?v={m.group(1)}"
+            elif "youtu.be/" in download_url:
+                m = re.search(r'youtu\.be/([a-zA-Z0-9_-]{11})', download_url)
+                if m:
+                    download_url = f"https://www.youtube.com/watch?v={m.group(1)}"
+
             ydl_opts: Dict[str, Any] = {
                 'outtmpl': output_template,
                 'progress_hooks': [progress_hook],
                 'quiet': True,
                 'no_warnings': True,
                 'socket_timeout': 15,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['ios', 'android', 'mweb', 'web']
+                    }
+                }
             }
             if ffmpeg_path:
                 ydl_opts['ffmpeg_location'] = ffmpeg_path
@@ -332,7 +347,7 @@ class JobManager:
                         })
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(job.url, download=True)
+                info = ydl.extract_info(download_url, download=True)
                 downloaded_file = ydl.prepare_filename(info)
 
                 # Check if audio was converted to mp3
