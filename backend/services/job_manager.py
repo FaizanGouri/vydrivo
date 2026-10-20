@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional, List
 import yt_dlp
 
 from services.security import safe_http_fetch, sanitize_filename
+from services.youtube import SanitizedYTDLPLogger
 
 logger = logging.getLogger("vydrivo.jobs")
 
@@ -279,13 +280,9 @@ class JobManager:
                 'outtmpl': output_template,
                 'progress_hooks': [progress_hook],
                 'quiet': True,
-                'no_warnings': True,
+                'no_warnings': False,
+                'logger': SanitizedYTDLPLogger(),
                 'socket_timeout': 15,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['ios', 'android', 'mweb', 'web']
-                    }
-                }
             }
             if ffmpeg_path:
                 ydl_opts['ffmpeg_location'] = ffmpeg_path

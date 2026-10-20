@@ -100,5 +100,19 @@ class TestJobManager(unittest.TestCase):
         with self.assertRaises(QueueFullError):
             manager.create_job("https://youtube.com/watch?v=123", "video", "1080p")
 
+    def test_download_job_ydl_options_configuration(self):
+        manager = JobManager()
+        job = Job("test-ydl-opts", "https://www.youtube.com/watch?v=123", "video", "1080p")
+        with patch("yt_dlp.YoutubeDL") as mock_ydl_class:
+            mock_ydl = mock_ydl_class.return_value.__enter__.return_value
+            mock_ydl.download.return_value = 0
+            manager._run_job(job)
+
+            call_args = mock_ydl_class.call_args[0][0]
+            # Ensure no explicit player_client override (preserving yt-dlp default selection)
+            self.assertNotIn("extractor_args", call_args)
+            self.assertFalse(call_args.get("no_warnings", True))
+            self.assertIsNotNone(call_args.get("logger"))
+
 if __name__ == "__main__":
     unittest.main()

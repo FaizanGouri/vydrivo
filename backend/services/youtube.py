@@ -1,8 +1,133 @@
 import re
+import logging
 from typing import Dict, Any, List, Optional
 import yt_dlp
 import os
 from services.security import validate_url, safe_http_fetch, SecurityValidationError
+
+logger = logging.getLogger("vydrivo.youtube")
+
+ALLOWED_CLIENTS = {
+    'web', 'web_safari', 'web_embedded', 'web_music', 'web_creator',
+    'android', 'android_vr', 'ios', 'visionos', 'mweb', 'tv', 'tv_downgraded', 'tv_simply'
+}
+
+HTTP_STATUS_REASONS = {
+    "400": "Bad Request",
+    "401": "Unauthorized",
+    "403": "Forbidden",
+    "404": "Not Found",
+    "410": "Gone",
+    "429": "Too Many Requests",
+    "500": "Internal Server Error",
+    "502": "Bad Gateway",
+    "503": "Service Unavailable",
+    "504": "Gateway Timeout",
+}
+
+class SanitizedYTDLPLogger:
+    """
+    Defense-in-depth logger that routes yt-dlp warnings and errors to backend logging.
+    Prefers fixed allowlisted diagnostic messages for known error patterns
+    (JS runtime, SABR, PO tokens, HTTP status codes) to ensure no raw URLs, tokens,
+    signatures, or IP addresses can leak into logs. For unclassified strings, strictly
+    strips all query parameters and sensitive parameter assignments.
+    """
+    @staticmethod
+    def categorize_message(msg: Any) -> Optional[str]:
+        text = str(msg).strip()
+        # 1. JavaScript challenge / runtime diagnostics
+        if "No supported JavaScript runtime" in text or "EJS" in text:
+            return "Missing JavaScript runtime for YouTube challenge solving (EJS)"
+        if "n challenge solving failed" in text:
+            return "JavaScript n-challenge solving failed: missing or incompatible JS runtime"
+
+        # 2. YouTube SABR streaming restrictions
+        sabr_match = re.search(r'Some (\w+) client https formats have been skipped', text)
+        if sabr_match:
+            client = sabr_match.group(1).lower()
+            safe_client = client if client in ALLOWED_CLIENTS else "unknown"
+            return f"SABR streaming restriction: formats skipped for client '{safe_client}'"
+
+        # 3. Proof-of-Origin (PO) Token requirements
+        pot_match = re.search(r'(\w+) client https formats require a GVS PO Token', text)
+        if pot_match:
+            client = pot_match.group(1).lower()
+            safe_client = client if client in ALLOWED_CLIENTS else "unknown"
+            return f"PO Token restriction: GVS PO Token required for client '{safe_client}'"
+
+        # 4. HTTP status codes (mapped to fixed allowlisted reason string)
+        http_match = re.search(r'HTTP Error (\d{3})', text)
+        if http_match:
+            code = http_match.group(1)
+            reason = HTTP_STATUS_REASONS.get(code, "Error")
+            return f"YouTube HTTP Error {code}: {reason}"
+
+        # 5. Core player response and playability statuses
+        if "Failed to extract any player response" in text:
+            return "YouTube extraction failure: Failed to extract any player response across all clients"
+        if "All player responses are invalid" in text:
+            return "YouTube extraction failure: All player responses invalid (datacenter IP block suspected)"
+        if "Requested format is not available" in text:
+            return "YouTube format resolution: Requested format is not available"
+        if "Private video" in text:
+            return "YouTube extraction diagnostic: Video is private"
+        if "Sign in to confirm your age" in text:
+            return "YouTube extraction diagnostic: Age-restricted video requires authentication"
+        if "This video is DRM protected" in text:
+            return "YouTube extraction diagnostic: Video is DRM protected"
+
+        return None
+
+    @classmethod
+    def sanitize_message(cls, msg: Any) -> str:
+        # 1. Prefer fixed allowlisted diagnostic message
+        category = cls.categorize_message(msg)
+        if category:
+            return category
+
+        text = str(msg).strip()
+
+        # 2. Redact complete query strings from URLs (both plain '?' and encoded '%3F'),
+        # preserving trailing sentence punctuation (.,;:!?)>])
+        def _strip_url_query(match):
+            prefix = match.group(1)
+            delim = match.group(2)
+            tail = match.group(3)
+            punct_m = re.search(r'([.,;:!?)>\]\'\"]+)$', tail)
+            trailing_punct = punct_m.group(1) if punct_m else ""
+            return f"{prefix}{delim}[QUERY_REDACTED]{trailing_punct}"
+
+        text = re.sub(
+            r'(https?://[^\s\?\"\'<>%]+)(\?|%3[fF])([^\s\"\'<>]+)',
+            _strip_url_query,
+            text
+        )
+
+        # 3. Redact sensitive parameter values (plain '=' and URL-encoded '%3D', preceded by '&', '%26', or word boundary)
+        text = re.sub(
+            r'(?i)(?:&|%26|\b)(po_token|visitor_data|signature|sig|token|key|secret|auth|password)(?:=|%3D)([a-zA-Z0-9_\-\.%]+)',
+            r'\1=[REDACTED]',
+            text
+        )
+
+        # 4. Bounded length to prevent log bloat
+        if len(text) > 300:
+            text = text[:300] + "... [TRUNCATED]"
+
+        return text
+
+    def debug(self, msg: str):
+        pass
+
+    def info(self, msg: str):
+        pass
+
+    def warning(self, msg: str):
+        logger.warning("yt-dlp warning: %s", self.sanitize_message(msg))
+
+    def error(self, msg: str):
+        logger.error("yt-dlp error: %s", self.sanitize_message(msg))
 
 # YouTube URL regex matching standard videos, shorts, and music
 YOUTUBE_REGEX = re.compile(
@@ -132,13 +257,9 @@ def extract_video_info(url: str) -> Dict[str, Any]:
     ydl_opts = {
         'skip_download': True,
         'quiet': True,
-        'no_warnings': True,
+        'no_warnings': False,
+        'logger': SanitizedYTDLPLogger(),
         'extract_flat': False,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['ios', 'android', 'mweb', 'web']
-            }
-        }
     }
 
     is_insta = is_valid_instagram_url(url)

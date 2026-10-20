@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import yt_dlp
 
 # Configure structured logging
 logging.basicConfig(
@@ -8,6 +9,12 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("vydrivo.api")
+
+logger.info(
+    "VYDRIVO Media Engine startup diagnostics | Python: %s | yt-dlp: %s",
+    sys.version.split()[0],
+    yt_dlp.version.__version__
+)
 
 # Ensure venv Scripts directory (where ffmpeg.exe resides) is in PATH
 scripts_dir = os.path.dirname(sys.executable)

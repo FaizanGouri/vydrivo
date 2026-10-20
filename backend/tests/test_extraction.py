@@ -95,14 +95,190 @@ class TestExtraction(unittest.TestCase):
         # Verify that extract_info was called with normalized watch URL
         mock_ydl.extract_info.assert_called_with("https://www.youtube.com/watch?v=0ZX0jCAvfPY", download=False)
         
-        # Verify extractor_args were passed in constructor
+        # Verify default client selection is preserved (no explicit player_client override)
         call_args = mock_ydl_class.call_args[0][0]
-        self.assertIn("extractor_args", call_args)
-        self.assertIn("youtube", call_args["extractor_args"])
-        self.assertEqual(
-            call_args["extractor_args"]["youtube"]["player_client"],
-            ['ios', 'android', 'mweb', 'web']
+        self.assertNotIn("extractor_args", call_args)
+        self.assertFalse(call_args.get("no_warnings", True))
+        self.assertIsNotNone(call_args.get("logger"))
+
+    def test_sanitized_logger_redacts_tokens_and_keys(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # Plain token and key parameters
+        msg1 = "Failed to fetch player with po_token=abc123XYZ and key=AIzaSySecretKey"
+        sanitized1 = sanitize(msg1)
+        self.assertNotIn("abc123XYZ", sanitized1)
+        self.assertNotIn("AIzaSySecretKey", sanitized1)
+        self.assertIn("po_token=[REDACTED]", sanitized1)
+        self.assertIn("key=[REDACTED]", sanitized1)
+
+        # visitor_data, sig, and signature
+        msg2 = "HTTP 403: visitor_data=Cgt2SVB1a2w%3D%3D sig=secret_sig_99 signature=sig_full_123"
+        sanitized2 = sanitize(msg2)
+        self.assertNotIn("secret_sig_99", sanitized2)
+        self.assertNotIn("sig_full_123", sanitized2)
+        self.assertIn("sig=[REDACTED]", sanitized2)
+        self.assertIn("signature=[REDACTED]", sanitized2)
+
+    def test_sanitized_logger_redacts_url_encoded_parameters(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # URL-encoded parameter delimiters (%3D)
+        msg = "Extractor warning: client returned po_token%3DTopSecretToken123 in payload"
+        sanitized = sanitize(msg)
+        self.assertNotIn("TopSecretToken123", sanitized)
+        self.assertIn("po_token=[REDACTED]", sanitized)
+
+    def test_sanitized_logger_redacts_query_strings_in_urls(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # Full URL containing sensitive query parameters in exception message
+        raw_url = "https://rr1---sn-5goz-nxbe.googlevideo.com/videoplayback?expire=171000&ei=ABC&ip=1.2.3.4&sig=MY_SIG&po_token=MY_POT"
+        msg = f"DownloadError: Connection reset during GET {raw_url}"
+        sanitized = sanitize(msg)
+
+        # Complete sensitive query string must be stripped
+        self.assertNotIn("expire=171000", sanitized)
+        self.assertNotIn("MY_SIG", sanitized)
+        self.assertNotIn("MY_POT", sanitized)
+        self.assertIn("https://rr1---sn-5goz-nxbe.googlevideo.com/videoplayback?[QUERY_REDACTED]", sanitized)
+
+    def test_sanitized_logger_handles_urls_followed_by_punctuation(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # URL followed by trailing period, comma, closing parenthesis, or quote
+        msg1 = "Failed to fetch https://googlevideo.com/videoplayback?expire=123&sig=SECRET_SIG."
+        sanitized1 = sanitize(msg1)
+        self.assertNotIn("SECRET_SIG", sanitized1)
+        self.assertTrue(sanitized1.endswith("?[QUERY_REDACTED]."))
+
+        msg2 = "See (source: https://googlevideo.com/videoplayback?sig=SECRET_SIG) for details."
+        sanitized2 = sanitize(msg2)
+        self.assertNotIn("SECRET_SIG", sanitized2)
+        self.assertIn("https://googlevideo.com/videoplayback?[QUERY_REDACTED])", sanitized2)
+
+    def test_sanitized_logger_handles_multiple_urls_in_one_message(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # Multiple URLs in one message
+        msg = (
+            "Primary URL: https://primary.googlevideo.com/videoplayback?sig=SIG1&po_token=POT1 "
+            "and fallback URL: https://fallback.googlevideo.com/videoplayback?sig=SIG2&po_token=POT2"
         )
+        sanitized = sanitize(msg)
+        self.assertNotIn("SIG1", sanitized)
+        self.assertNotIn("POT1", sanitized)
+        self.assertNotIn("SIG2", sanitized)
+        self.assertNotIn("POT2", sanitized)
+        self.assertIn("https://primary.googlevideo.com/videoplayback?[QUERY_REDACTED]", sanitized)
+        self.assertIn("https://fallback.googlevideo.com/videoplayback?[QUERY_REDACTED]", sanitized)
+
+    def test_sanitized_logger_handles_encoded_query_delimiters(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # URL with encoded %3F query delimiter and %26 / %3D parameter delimiters
+        msg = "Trace: GET https://manifest.googlevideo.com/api%3Fsig%3DENC_SIG%26po_token%3DENC_POT"
+        sanitized = sanitize(msg)
+        self.assertNotIn("ENC_SIG", sanitized)
+        self.assertNotIn("ENC_POT", sanitized)
+        self.assertIn("https://manifest.googlevideo.com/api%3F[QUERY_REDACTED]", sanitized)
+
+    def test_sanitized_logger_categorizes_known_diagnostics(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # JS runtime warning
+        js_warn = (
+            "[youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; "
+            "to use another runtime add --js-runtimes RUNTIME[:PATH] to your command/config. "
+            "See https://github.com/yt-dlp/yt-dlp/wiki/EJS for details on installing one"
+        )
+        self.assertEqual(
+            sanitize(js_warn),
+            "Missing JavaScript runtime for YouTube challenge solving (EJS)"
+        )
+
+        # SABR format skipping
+        sabr_warn = (
+            "Some ios client https formats have been skipped as they are missing a URL. "
+            "YouTube may have enabled the SABR-only streaming experiment. See https://github.com/yt-dlp/yt-dlp/issues/12482"
+        )
+        self.assertEqual(
+            sanitize(sabr_warn),
+            "SABR streaming restriction: formats skipped for client 'ios'"
+        )
+
+        # PO Token warning
+        pot_warn = (
+            "mweb client https formats require a GVS PO Token which was not provided. "
+            "They will be skipped. See https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide"
+        )
+        self.assertEqual(
+            sanitize(pot_warn),
+            "PO Token restriction: GVS PO Token required for client 'mweb'"
+        )
+
+        # HTTP error with nested URL
+        http_err = (
+            "yt_dlp.utils.ExtractorError: [youtube] 0ZX0jCAvfPY: HTTP Error 403: Forbidden "
+            "for URL 'https://rr1---sn-5goz-nxbe.googlevideo.com/videoplayback?expire=999&sig=DEEP_SIG&po_token=DEEP_POT'"
+        )
+        self.assertEqual(
+            sanitize(http_err),
+            "YouTube HTTP Error 403: Forbidden"
+        )
+
+    def test_categorize_message_drops_secrets_and_ips_in_matched_categories(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # HTTP error accompanied by IP address and tokens
+        raw_http_msg = "HTTP Error 429: Too Many Requests for URL https://googlevideo.com/v?ip=1.2.3.4&token=SUPER_SECRET"
+        res = sanitize(raw_http_msg)
+        self.assertEqual(res, "YouTube HTTP Error 429: Too Many Requests")
+        self.assertNotIn("1.2.3.4", res)
+        self.assertNotIn("SUPER_SECRET", res)
+
+        # Unrecognized client name in SABR format skip
+        injection_sabr = "Some evil_payload client https formats have been skipped"
+        self.assertEqual(
+            sanitize(injection_sabr),
+            "SABR streaming restriction: formats skipped for client 'unknown'"
+        )
+
+        # Private video and DRM playability statuses
+        self.assertEqual(
+            sanitize("Sign in to confirm your age. This video may be inappropriate"),
+            "YouTube extraction diagnostic: Age-restricted video requires authentication"
+        )
+        self.assertEqual(
+            sanitize("Private video. Sign in if you've been granted access"),
+            "YouTube extraction diagnostic: Video is private"
+        )
+        self.assertEqual(
+            sanitize("This video is DRM protected"),
+            "YouTube extraction diagnostic: Video is DRM protected"
+        )
+
+    def test_sanitized_logger_handles_nested_exception_messages(self):
+        from services.youtube import SanitizedYTDLPLogger
+        sanitize = SanitizedYTDLPLogger.sanitize_message
+
+        # Unclassified nested exception string with embedded quotes and multiple parameters
+        exc_msg = (
+            "yt_dlp.utils.ExtractorError: Connection reset "
+            "for URL 'https://rr1---sn-5goz-nxbe.googlevideo.com/videoplayback?expire=999&sig=DEEP_SIG&po_token=DEEP_POT'"
+        )
+        sanitized = sanitize(exc_msg)
+        self.assertNotIn("DEEP_SIG", sanitized)
+        self.assertNotIn("DEEP_POT", sanitized)
+        self.assertIn("https://rr1---sn-5goz-nxbe.googlevideo.com/videoplayback?[QUERY_REDACTED]'", sanitized)
 
 if __name__ == "__main__":
     unittest.main()
