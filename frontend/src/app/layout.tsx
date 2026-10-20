@@ -9,8 +9,17 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "VYDRIVO – YouTube & Shorts Video Downloader",
-  description: "Fast, simple, and free YouTube and Shorts video downloader with MP4 and MP3 export.",
+  title: "VYDRIVO – YouTube, Instagram & Facebook Media Downloader",
+  description: "Fast, simple, and free video and audio downloader for YouTube, Instagram, and Facebook with MP4, MP3, and image export.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
