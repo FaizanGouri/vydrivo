@@ -190,10 +190,15 @@ def extract_video_info(url: str) -> Dict[str, Any]:
             "options": available_options
         }
 
-def format_duration(seconds: Optional[int]) -> str:
+def format_duration(seconds: Any) -> str:
     if not seconds:
         return "0:00"
-    m, s = divmod(seconds, 60)
+    try:
+        total_seconds = int(round(float(seconds)))
+    except (ValueError, TypeError):
+        return "0:00"
+
+    m, s = divmod(total_seconds, 60)
     h, m = divmod(m, 60)
     if h > 0:
         return f"{h}:{m:02d}:{s:02d}"
