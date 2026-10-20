@@ -328,6 +328,74 @@ def get_impersonate_target():
     except Exception:
         return None
 
+def extract_youtube_oembed(url: str) -> Optional[Dict[str, Any]]:
+    """
+    Fallback extractor for YouTube using the official YouTube oEmbed API
+    when yt-dlp encounters cloud datacenter IP rate limits (429/403).
+    """
+    import requests
+    try:
+        clean_url = url.strip()
+        oembed_url = f"https://www.youtube.com/oembed?url={clean_url}&format=json"
+        resp = requests.get(oembed_url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            m = re.search(r'(?:watch\?v=|shorts/|embed/|youtu\.be/)([a-zA-Z0-9_-]{11})', clean_url)
+            vid = m.group(1) if m else "youtube_video"
+            title = data.get("title") or "YouTube Video"
+            author = data.get("author_name") or "YouTube Creator"
+            thumb = data.get("thumbnail_url") or f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+            return {
+                "id": vid,
+                "url": clean_url,
+                "title": title,
+                "thumbnail": thumb,
+                "duration": None,
+                "duration_formatted": None,
+                "uploader": author,
+                "view_count": None,
+                "platform": "youtube",
+                "is_short": "/shorts/" in clean_url,
+                "options": [
+                    {
+                        "quality": "1080p",
+                        "height": 1080,
+                        "format": "mp4",
+                        "label": "1080p (MP4) - Full HD",
+                        "type": "video"
+                    },
+                    {
+                        "quality": "720p",
+                        "height": 720,
+                        "format": "mp4",
+                        "label": "720p (MP4) - HD",
+                        "type": "video"
+                    },
+                    {
+                        "quality": "360p",
+                        "height": 360,
+                        "format": "mp4",
+                        "label": "360p (MP4)",
+                        "type": "video"
+                    },
+                    {
+                        "quality": "320kbps",
+                        "format": "mp3",
+                        "label": "High Quality Audio (MP3 - 320 kbps)",
+                        "type": "audio"
+                    },
+                    {
+                        "quality": "128kbps",
+                        "format": "mp3",
+                        "label": "Standard Audio (MP3 - 128 kbps)",
+                        "type": "audio"
+                    }
+                ]
+            }
+    except Exception:
+        pass
+    return None
+
 def extract_video_info(url: str) -> Dict[str, Any]:
     """
     Extracts metadata, thumbnails, duration, and available quality formats
@@ -399,6 +467,13 @@ def extract_video_info(url: str) -> Dict[str, Any]:
                         }
                     ]
                 }
+        # Fallback to official YouTube oEmbed if yt-dlp was rate-limited or blocked on cloud IPs
+        if is_valid_youtube_url(url):
+            oembed_data = extract_youtube_oembed(clean_url)
+            if oembed_data:
+                logger.info("Used YouTube oEmbed fallback for %s", clean_url)
+                return oembed_data
+
         if ydl_logger.encountered_429 or "429" in str(e) or "Too Many Requests" in str(e):
             raise MediaProviderRateLimitError(
                 "The media provider is currently rate-limiting requests. Please try again in a few minutes."

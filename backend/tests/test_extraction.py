@@ -117,8 +117,9 @@ class TestExtraction(unittest.TestCase):
         logger.error("ERROR: [youtube] HTTP Error 403: Forbidden")
         self.assertTrue(logger.encountered_403)
 
+    @patch("services.youtube.extract_youtube_oembed", return_value=None)
     @patch("yt_dlp.YoutubeDL")
-    def test_extract_video_info_raises_rate_limit_error_on_429_warning(self, mock_ydl_class):
+    def test_extract_video_info_raises_rate_limit_error_on_429_warning(self, mock_ydl_class, mock_oembed):
         from services.youtube import MediaProviderRateLimitError
         mock_ydl = MagicMock()
         mock_ydl_class.return_value.__enter__.return_value = mock_ydl
@@ -133,6 +134,19 @@ class TestExtraction(unittest.TestCase):
 
         with self.assertRaises(MediaProviderRateLimitError):
             extract_video_info("https://www.youtube.com/watch?v=0ZX0jCAvfPY")
+
+    @patch("yt_dlp.YoutubeDL")
+    def test_extract_video_info_falls_back_to_oembed_on_rate_limit(self, mock_ydl_class):
+        mock_ydl = MagicMock()
+        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.side_effect = Exception("HTTP Error 429: Too Many Requests")
+
+        info = extract_video_info("https://www.youtube.com/watch?v=0ZX0jCAvfPY")
+        self.assertIsNotNone(info)
+        self.assertEqual(info["id"], "0ZX0jCAvfPY")
+        self.assertEqual(info["title"], "How to Deploy a NextJS Website to Vercel")
+        self.assertEqual(info["platform"], "youtube")
+        self.assertTrue(len(info["options"]) > 0)
 
     def test_js_runtime_configuration(self):
         import os
