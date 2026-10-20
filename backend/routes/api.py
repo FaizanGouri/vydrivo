@@ -33,12 +33,17 @@ def get_client_ip(request: Request) -> str:
 
 @router.get("/health")
 def health_check():
+    cookies_file = os.path.join(DOWNLOADS_DIR, "cookies.txt")
+    has_cookies = bool(os.environ.get("YOUTUBE_COOKIES") or os.environ.get("YOUTUBE_COOKIES_BASE64") or (os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 10))
+    has_proxy = bool(os.environ.get("PROXY_URL") or os.environ.get("HTTP_PROXY"))
     return {
         "status": "ok",
         "service": "vydrivo-media-engine",
-        "version": "1.0.3",
+        "version": "1.0.4",
         "player_client": "web_embedded",
-        "tls_impersonate": bool(get_impersonate_target())
+        "tls_impersonate": bool(get_impersonate_target()),
+        "has_cookies": has_cookies,
+        "has_proxy": has_proxy
     }
 
 @router.post("/inspect")

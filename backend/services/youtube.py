@@ -277,6 +277,45 @@ def get_js_runtime_config() -> Dict[str, Any]:
         return {'deno': {'path': deno_path}}
     return {'deno': {}}
 
+DOWNLOADS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "downloads"))
+os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
+def configure_auth_and_network_options(ydl_opts: Dict[str, Any]):
+    """
+    Applies cookies, proxies, and PO tokens from environment variables
+    if provided (e.g. on cloud hosts like Render where YouTube rate-limits anonymous IPs).
+    """
+    # 1. Cookies from environment variable
+    cookies_content = os.environ.get("YOUTUBE_COOKIES") or os.environ.get("COOKIES_CONTENT")
+    cookies_b64 = os.environ.get("YOUTUBE_COOKIES_BASE64")
+    if cookies_b64:
+        import base64
+        try:
+            cookies_content = base64.b64decode(cookies_b64).decode("utf-8")
+        except Exception:
+            pass
+
+    cookies_file = os.path.join(DOWNLOADS_DIR, "cookies.txt")
+    if cookies_content:
+        try:
+            with open(cookies_file, "w", encoding="utf-8") as f:
+                f.write(cookies_content)
+            ydl_opts["cookiefile"] = cookies_file
+        except Exception as e:
+            logger.warning("Failed to write cookies file: %s", e)
+    elif os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 10:
+        ydl_opts["cookiefile"] = cookies_file
+
+    # 2. Proxy support
+    proxy = os.environ.get("PROXY_URL") or os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY")
+    if proxy:
+        ydl_opts["proxy"] = proxy
+
+    # 3. PO Token support
+    po_token = os.environ.get("YOUTUBE_PO_TOKEN")
+    if po_token:
+        ydl_opts.setdefault("extractor_args", {}).setdefault("youtube", {})["po_token"] = [po_token]
+
 def get_impersonate_target():
     """
     Returns Chrome ImpersonateTarget if curl_cffi is available,
@@ -324,6 +363,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
     imp = get_impersonate_target()
     if imp:
         ydl_opts['impersonate'] = imp
+    configure_auth_and_network_options(ydl_opts)
 
     is_insta = is_valid_instagram_url(url)
     is_fb = is_valid_facebook_url(url)
