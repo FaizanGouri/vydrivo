@@ -57,37 +57,47 @@ body {
   will-change: transform;
 }
 
-/* ================= TAB SWITCH SLIDE & FADE ANIMATIONS ================= */
+/* ================= LIQUID TAB SWITCH SLIDE & FADE ANIMATIONS ================= */
 @keyframes tabSlideInRight {
-  from {
+  0% {
     opacity: 0;
-    transform: translate3d(32px, 0, 0);
+    transform: translate3d(40px, 0, 0) scale(0.97);
+    filter: blur(4px);
   }
-  to {
+  60% {
+    filter: blur(0px);
+  }
+  100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
   }
 }
 
 @keyframes tabSlideInLeft {
-  from {
+  0% {
     opacity: 0;
-    transform: translate3d(-32px, 0, 0);
+    transform: translate3d(-40px, 0, 0) scale(0.97);
+    filter: blur(4px);
   }
-  to {
+  60% {
+    filter: blur(0px);
+  }
+  100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
   }
 }
 
 .tab-slide-right {
-  animation: tabSlideInRight 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
+  animation: tabSlideInRight 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
 }
 
 .tab-slide-left {
-  animation: tabSlideInLeft 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
+  animation: tabSlideInLeft 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
 }
 
 /* ================= LOADING SCREEN ANIMATIONS & STYLES ================= */

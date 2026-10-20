@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import GooeyLiquidNav from "@/components/GooeyLiquidNav";
 import { 
   Download, 
   CheckCircle2, 
@@ -415,59 +416,11 @@ export default function Home() {
           vydrivo<span className="text-[#f2b632]">.</span>
         </a>
 
-        <div className="flex flex-wrap gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner">
-          <button 
-            type="button"
-            onClick={() => switchTab("youtube")}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "youtube"
-                ? "bg-white text-[#1f2a24] shadow-md scale-[1.02]"
-                : "text-white hover:bg-white/20 scale-100"
-            }`}
-          >
-            <Play className={`w-3.5 h-3.5 transition-colors duration-300 ${activeTab === "youtube" ? "fill-red-600 text-red-600" : ""}`} />
-            YouTube
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => switchTab("instagram")}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "instagram"
-                ? "bg-gradient-to-r from-[#fdc468] via-[#df4996] to-[#4f5bd5] text-white shadow-md font-bold scale-[1.02]"
-                : "text-white hover:bg-white/20 scale-100"
-            }`}
-          >
-            <Camera className="w-3.5 h-3.5" />
-            Instagram Reel / Image
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => switchTab("facebook")}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "facebook"
-                ? "bg-[#1877f2] text-white shadow-md font-bold scale-[1.02]"
-                : "text-white hover:bg-white/20 scale-100"
-            }`}
-          >
-            <FacebookIcon className="w-3.5 h-3.5" />
-            Facebook Video / Image
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => switchTab("pinterest")}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "pinterest"
-                ? "bg-[#e60023] text-white shadow-md font-bold scale-[1.02]"
-                : "text-white hover:bg-white/20 scale-100"
-            }`}
-          >
-            <PinterestIcon className="w-3.5 h-3.5" />
-            Pinterest Pin / Video
-          </button>
-        </div>
+        <GooeyLiquidNav
+          activeTab={activeTab}
+          onTabChange={switchTab}
+          direction={tabDirection}
+        />
       </nav>
 
       {/* Hero Section (Centered Clean & Focused Downloader) */}
