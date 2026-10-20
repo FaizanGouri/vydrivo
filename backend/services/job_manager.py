@@ -4,29 +4,36 @@ import uuid
 import time
 import shutil
 import asyncio
+import logging
 import threading
-from typing import Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, Any, Optional, List
 import yt_dlp
+
+from services.security import safe_http_fetch, sanitize_filename
+
+logger = logging.getLogger("vydrivo.jobs")
 
 DOWNLOADS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "downloads"))
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
+MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "4"))
+MAX_QUEUE_CAPACITY = int(os.environ.get("MAX_QUEUE_CAPACITY", "25"))
+JOB_TIMEOUT_SECONDS = int(os.environ.get("JOB_TIMEOUT_SECONDS", "300")) # 5 minutes
 
 def get_ffmpeg_path() -> Optional[str]:
     """
     Finds FFmpeg binary from environment, virtualenv Scripts,
     imageio-ffmpeg package, or system PATH.
     """
-    # 1. Explicit environment variable
     env_path = os.environ.get("FFMPEG_PATH")
     if env_path and os.path.exists(env_path):
         return env_path
 
-    # 2. Inside Python virtual environment Scripts directory
     venv_ffmpeg = os.path.join(os.path.dirname(sys.executable), "ffmpeg.exe")
     if os.path.exists(venv_ffmpeg):
         return venv_ffmpeg
 
-    # 3. Bundled imageio-ffmpeg binary
     try:
         import imageio_ffmpeg
         exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -35,19 +42,30 @@ def get_ffmpeg_path() -> Optional[str]:
     except Exception:
         pass
 
-    # 4. Global PATH
     bin_path = shutil.which("ffmpeg")
     if bin_path:
         return bin_path
 
     return None
 
+class QueueFullError(Exception):
+    """Raised when the job queue is saturated."""
+    pass
+
 class Job:
+    VALID_TRANSITIONS = {
+        "queued": {"processing", "cancelled"},
+        "processing": {"completed", "failed", "cancelled"},
+        "completed": set(),
+        "failed": set(),
+        "cancelled": set(),
+    }
+
     def __init__(self, job_id: str, url: str, format_type: str, quality: str):
         self.job_id = job_id
         self.url = url
-        self.format_type = format_type  # 'video' or 'audio'
-        self.quality = quality          # e.g., '1080p', '720p', '320kbps'
+        self.format_type = format_type  # 'video', 'audio', or 'image'
+        self.quality = quality          # e.g., '1080p', '720p', '320kbps', 'Original'
         self.status = "queued"          # queued, processing, completed, failed, cancelled
         self.progress = 0.0
         self.speed = ""
@@ -55,72 +73,126 @@ class Job:
         self.filename = ""
         self.file_path = ""
         self.file_size = 0
-        self.error = None
+        self.error: Optional[str] = None
         self.created_at = time.time()
         self.updated_at = time.time()
-        self.subscribers = []           # asyncio.Queue objects for SSE
+        self.lock = threading.Lock()
+        self.is_cancelled = False
 
     def update_progress(self, percent: float, speed: str = "", eta: str = ""):
-        self.progress = round(percent, 1)
-        self.speed = speed
-        self.eta = eta
-        self.updated_at = time.time()
-        self._notify()
+        with self.lock:
+            if self.status != "processing":
+                return
+            self.progress = round(max(0.0, min(100.0, percent)), 1)
+            self.speed = speed
+            self.eta = eta
+            self.updated_at = time.time()
 
-    def set_status(self, status: str, error: Optional[str] = None):
-        self.status = status
-        if error:
-            self.error = error
-        self.updated_at = time.time()
-        self._notify()
+    def set_status(self, new_status: str, error: Optional[str] = None) -> bool:
+        with self.lock:
+            allowed = self.VALID_TRANSITIONS.get(self.status, set())
+            if new_status not in allowed:
+                logger.warning(
+                    "Ignored invalid state transition for job %s: %s -> %s",
+                    self.job_id, self.status, new_status
+                )
+                return False
 
-    def _notify(self):
-        data = self.to_dict()
-        for q in self.subscribers:
-            try:
-                q.put_nowait(data)
-            except Exception:
-                pass
+            self.status = new_status
+            if error:
+                self.error = error
+            self.updated_at = time.time()
+            return True
+
+    def cancel(self):
+        with self.lock:
+            self.is_cancelled = True
+            if self.status in ("queued", "processing"):
+                self.status = "cancelled"
+                self.error = "Job was cancelled."
+                self.updated_at = time.time()
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "job_id": self.job_id,
-            "status": self.status,
-            "progress": self.progress,
-            "speed": self.speed,
-            "eta": self.eta,
-            "filename": self.filename,
-            "file_size": self.file_size,
-            "error": self.error,
-        }
+        with self.lock:
+            return {
+                "job_id": self.job_id,
+                "status": self.status,
+                "progress": self.progress,
+                "speed": self.speed,
+                "eta": self.eta,
+                "filename": self.filename,
+                "file_size": self.file_size,
+                "error": self.error,
+            }
 
 class JobManager:
     def __init__(self):
         self.jobs: Dict[str, Job] = {}
-        # Start cleanup background task
+        self.lock = threading.Lock()
+        self.executor = ThreadPoolExecutor(
+            max_workers=MAX_CONCURRENT_JOBS,
+            thread_name_prefix="vydrivo_worker"
+        )
+        # Perform startup cleanup of orphaned disk files
+        self._purge_stale_disk_files(max_age_seconds=1800)
+        # Start periodic background cleanup worker
         threading.Thread(target=self._cleanup_loop, daemon=True).start()
 
     def create_job(self, url: str, format_type: str, quality: str) -> Job:
-        job_id = str(uuid.uuid4())
-        job = Job(job_id, url, format_type, quality)
-        self.jobs[job_id] = job
-        # Start worker thread
-        threading.Thread(target=self._run_job, args=(job,), daemon=True).start()
+        with self.lock:
+            # Check capacity
+            active_count = sum(
+                1 for j in self.jobs.values() if j.status in ("queued", "processing")
+            )
+            if active_count >= MAX_QUEUE_CAPACITY:
+                raise QueueFullError("The server is currently processing maximum capacity. Please retry shortly.")
+
+            job_id = str(uuid.uuid4())
+            job = Job(job_id, url, format_type, quality)
+            self.jobs[job_id] = job
+
+        # Submit task to bounded thread pool
+        self.executor.submit(self._run_job_wrapper, job)
         return job
 
     def get_job(self, job_id: str) -> Optional[Job]:
-        return self.jobs.get(job_id)
+        with self.lock:
+            return self.jobs.get(job_id)
+
+    def cancel_job(self, job_id: str) -> bool:
+        with self.lock:
+            job = self.jobs.get(job_id)
+        if job:
+            job.cancel()
+            return True
+        return False
+
+    def _run_job_wrapper(self, job: Job):
+        """Wrapper enforcing timeout and catch-all safety."""
+        start_time = time.time()
+        try:
+            self._run_job(job)
+        except Exception as e:
+            logger.error("Job %s failed with exception: %s", job.job_id, e, exc_info=True)
+            job.set_status("failed", error="Media processing failed. Please check the link or format.")
 
     def _run_job(self, job: Job):
-        job.set_status("processing")
-        
+        if job.is_cancelled:
+            return
+
+        if not job.set_status("processing"):
+            return
+
         output_template = os.path.join(DOWNLOADS_DIR, f"{job.job_id}_%(title).100s.%(ext)s")
 
         def progress_hook(d):
+            if job.is_cancelled:
+                raise Exception("Job cancelled by user.")
+
             if d['status'] == 'downloading':
                 total_bytes = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
                 downloaded_bytes = d.get('downloaded_bytes') or 0
-                
+
                 percent = 0.0
                 if total_bytes > 0:
                     percent = (downloaded_bytes / total_bytes) * 100
@@ -144,18 +216,10 @@ class JobManager:
                 if ffmpeg_dir not in os.environ.get("PATH", ""):
                     os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
 
-            ydl_opts: Dict[str, Any] = {
-                'outtmpl': output_template,
-                'progress_hooks': [progress_hook],
-                'quiet': True,
-                'no_warnings': True,
-            }
-            if ffmpeg_path:
-                ydl_opts['ffmpeg_location'] = ffmpeg_path
-
+            # ----------------------------------------------------
+            # 1. Image Download Handler (Safe fetch with SSRF guard)
+            # ----------------------------------------------------
             if job.format_type == 'image':
-                # Direct download of post/cover/pin image
-                import urllib.request
                 job.update_progress(10.0, "Fetching image details...", "")
                 img_url = None
                 raw_title = "media_image"
@@ -182,15 +246,15 @@ class JobManager:
                 if not img_url:
                     raise Exception("Could not find image for this post or pin.")
 
-                clean_title = "".join(c for c in raw_title if c.isalnum() or c in (' ', '_', '-')).strip()[:60]
-                clean_title = clean_title.replace(' ', '_') or "media_image"
+                clean_title = sanitize_filename(raw_title, max_length=60).replace(' ', '_')
                 out_filename = f"{job.job_id}_{clean_title}.jpg"
                 out_path = os.path.join(DOWNLOADS_DIR, out_filename)
 
                 job.update_progress(50.0, "Saving full-resolution image...", "")
-                req = urllib.request.Request(img_url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
-                    f.write(resp.read())
+                img_bytes, _ = safe_http_fetch(img_url, allow_cdns=True, max_size_bytes=30 * 1024 * 1024)
+                with open(out_path, 'wb') as f:
+                    f.write(img_bytes)
+
                 job.file_path = out_path
                 job.filename = f"{clean_title}.jpg"
                 job.file_size = os.path.getsize(out_path)
@@ -198,20 +262,30 @@ class JobManager:
                 job.set_status("completed")
                 return
 
+            # ----------------------------------------------------
+            # 2. Audio or Video Processing with yt-dlp
+            # ----------------------------------------------------
+            ydl_opts: Dict[str, Any] = {
+                'outtmpl': output_template,
+                'progress_hooks': [progress_hook],
+                'quiet': True,
+                'no_warnings': True,
+                'socket_timeout': 15,
+            }
+            if ffmpeg_path:
+                ydl_opts['ffmpeg_location'] = ffmpeg_path
+
             if job.format_type == 'audio':
-                if ffmpeg_path:
-                    ydl_opts.update({
-                        'format': 'bestaudio/best',
-                        'postprocessors': [{
-                            'key': 'FFmpegExtractAudio',
-                            'preferredcodec': 'mp3',
-                            'preferredquality': '320' if '320' in job.quality else '128',
-                        }],
-                    })
-                else:
-                    ydl_opts.update({
-                        'format': 'bestaudio[ext=m4a]/bestaudio/best',
-                    })
+                if not ffmpeg_path:
+                    raise Exception("FFmpeg is required for MP3 audio conversion, but FFmpeg was not found on the server.")
+                ydl_opts.update({
+                    'format': 'bestaudio/best',
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '320' if '320' in job.quality else '128',
+                    }],
+                })
             else:
                 # Video format
                 is_insta = 'instagram.com' in job.url
@@ -220,14 +294,11 @@ class JobManager:
                 height = job.quality.replace('p', '')
 
                 if is_insta or is_pin:
-                    # For Instagram & Pinterest, prioritize single pre-muxed MP4 stream with audio,
-                    # and fallback to separate streams merged with FFmpeg
                     ydl_opts.update({
                         'format': 'best[ext=mp4]/best/bestvideo+bestaudio',
                         'merge_output_format': 'mp4',
                     })
                 elif is_fb:
-                    # For Facebook, handle HD vs SD and progressive MP4s
                     if job.quality == "SD":
                         ydl_opts.update({
                             'format': 'sd/best[height<=480]/best',
@@ -263,13 +334,15 @@ class JobManager:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(job.url, download=True)
                 downloaded_file = ydl.prepare_filename(info)
-                
-                # If audio was converted to mp3, the extension changed
+
+                # Check if audio was converted to mp3
                 if job.format_type == 'audio':
                     base, _ = os.path.splitext(downloaded_file)
                     mp3_path = base + ".mp3"
                     if os.path.exists(mp3_path):
                         downloaded_file = mp3_path
+                    else:
+                        raise Exception("FFmpeg failed to generate the MP3 audio file.")
                 elif ydl_opts.get('merge_output_format'):
                     base, _ = os.path.splitext(downloaded_file)
                     merged_path = base + "." + ydl_opts['merge_output_format']
@@ -279,14 +352,12 @@ class JobManager:
                 if os.path.exists(downloaded_file):
                     job.file_path = downloaded_file
                     job.filename = os.path.basename(downloaded_file)
-                    # Strip job_id prefix from public filename
                     if job.filename.startswith(f"{job.job_id}_"):
                         job.filename = job.filename[len(job.job_id) + 1:]
                     job.file_size = os.path.getsize(downloaded_file)
                     job.progress = 100.0
                     job.set_status("completed")
                 else:
-                    # Search directory for file matching job_id
                     matched = [f for f in os.listdir(DOWNLOADS_DIR) if f.startswith(job.job_id)]
                     if matched:
                         target = os.path.join(DOWNLOADS_DIR, matched[0])
@@ -296,26 +367,63 @@ class JobManager:
                         job.progress = 100.0
                         job.set_status("completed")
                     else:
-                        raise Exception("Output file was not generated.")
+                        raise Exception("Output file was not generated by media engine.")
 
         except Exception as e:
-            job.set_status("failed", error=str(e))
+            if not job.is_cancelled:
+                job.set_status("failed", error=str(e))
+            # Clean up any partial download files left for this job
+            try:
+                for f in os.listdir(DOWNLOADS_DIR):
+                    if f.startswith(job.job_id):
+                        p = os.path.join(DOWNLOADS_DIR, f)
+                        if os.path.isfile(p):
+                            os.remove(p)
+            except Exception:
+                pass
+
+    def _purge_stale_disk_files(self, max_age_seconds: int = 1800):
+        """Scans DOWNLOADS_DIR directly to delete any file older than max_age_seconds."""
+        if not os.path.exists(DOWNLOADS_DIR):
+            return
+
+        now = time.time()
+        for filename in os.listdir(DOWNLOADS_DIR):
+            filepath = os.path.join(DOWNLOADS_DIR, filename)
+            try:
+                if os.path.isfile(filepath):
+                    mtime = os.path.getmtime(filepath)
+                    if now - mtime > max_age_seconds:
+                        os.remove(filepath)
+                        logger.info("Purged stale download file: %s", filename)
+            except Exception as e:
+                logger.debug("Could not remove stale file %s: %s", filename, e)
 
     def _cleanup_loop(self):
-        """Cleans up files older than 30 minutes to manage disk space."""
+        """Periodic background cleanup running every 5 minutes."""
         while True:
-            time.sleep(300)  # Check every 5 minutes
+            time.sleep(300)
             now = time.time()
             expired_ids = []
-            for jid, job in self.jobs.items():
-                if now - job.created_at > 1800:  # 30 mins
+
+            # Thread-safe snapshot of job items
+            with self.lock:
+                jobs_snapshot = list(self.jobs.items())
+
+            for jid, job in jobs_snapshot:
+                if now - job.created_at > 1800:
                     if job.file_path and os.path.exists(job.file_path):
                         try:
                             os.remove(job.file_path)
                         except Exception:
                             pass
                     expired_ids.append(jid)
-            for jid in expired_ids:
-                del self.jobs[jid]
+
+            with self.lock:
+                for jid in expired_ids:
+                    self.jobs.pop(jid, None)
+
+            # Also purge any orphaned files on disk left from past crashes or restarts
+            self._purge_stale_disk_files(max_age_seconds=1800)
 
 job_manager = JobManager()

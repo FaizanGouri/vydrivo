@@ -2,6 +2,7 @@ import re
 from typing import Dict, Any, List, Optional
 import yt_dlp
 import os
+from services.security import validate_url, safe_http_fetch, SecurityValidationError
 
 # YouTube URL regex matching standard videos, shorts, and music
 YOUTUBE_REGEX = re.compile(
@@ -46,6 +47,13 @@ def is_valid_pinterest_url(url: str) -> bool:
     return bool(PINTEREST_REGEX.search(url.strip()))
 
 def is_valid_supported_url(url: str) -> bool:
+    if not url:
+        return False
+    try:
+        validate_url(url, require_dns_check=False)
+    except SecurityValidationError:
+        return False
+
     return (
         is_valid_youtube_url(url)
         or is_valid_instagram_url(url)
@@ -56,18 +64,13 @@ def is_valid_supported_url(url: str) -> bool:
 def extract_pinterest_pin_data(url: str) -> Optional[Dict[str, Any]]:
     """
     Fallback scraper for Pinterest image pins when yt-dlp finds no video formats.
+    Protected with SSRF validation, DNS checks, and bounded response limits.
     """
-    import requests
     import html as py_html
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-    }
     try:
-        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=12)
-        page_text = resp.text
-        final_url = resp.url
+        page_bytes, content_type = safe_http_fetch(url, allow_cdns=False, max_size_bytes=5 * 1024 * 1024)
+        page_text = page_bytes.decode('utf-8', errors='ignore')
+        final_url = url
 
         preload_m = re.search(r'id=["\']pin-image-preload["\'][^>]+href=["\']([^"\']+)["\']', page_text)
         if not preload_m:
@@ -157,170 +160,169 @@ def extract_video_info(url: str) -> Dict[str, Any]:
                     ]
                 }
         raise e
-        
-        # Determine title, thumbnail, duration, author
-        if is_insta:
-            default_title = f"Instagram {'Reel' if '/reel' in url else 'Post'}"
-        elif is_fb:
-            default_title = f"Facebook {'Reel' if '/reel' in url else 'Video'}"
-        elif is_pin:
-            default_title = "Pinterest Pin"
-        else:
-            default_title = "Untitled Video"
+# Determine title, thumbnail, duration, author
+    if is_insta:
+        default_title = f"Instagram {'Reel' if '/reel' in url else 'Post'}"
+    elif is_fb:
+        default_title = f"Facebook {'Reel' if '/reel' in url else 'Video'}"
+    elif is_pin:
+        default_title = "Pinterest Pin"
+    else:
+        default_title = "Untitled Video"
 
-        title = info.get('title') or default_title
-        thumbnail = info.get('thumbnail')
-        duration = info.get('duration') # in seconds
-        uploader = (
-            info.get('uploader') or info.get('channel') or info.get('uploader_id')
-            or ('Instagram Creator' if is_insta else ('Facebook Creator' if is_fb else ('Pinterest Creator' if is_pin else 'Unknown Creator')))
+    title = info.get('title') or default_title
+    thumbnail = info.get('thumbnail')
+    duration = info.get('duration') # in seconds
+    uploader = (
+        info.get('uploader') or info.get('channel') or info.get('uploader_id')
+        or ('Instagram Creator' if is_insta else ('Facebook Creator' if is_fb else ('Pinterest Creator' if is_pin else 'Unknown Creator')))
+    )
+    view_count = info.get('view_count') or info.get('like_count')
+    video_id = info.get('id')
+
+    # Filter formats
+    formats_list = info.get('formats', [])
+    available_options = []
+
+    if is_insta:
+        # Instagram Reel / Video
+        available_options.append({
+            "quality": "HD",
+            "format": "mp4",
+            "label": "High Quality Reel Video (MP4)",
+            "type": "video"
+        })
+        available_options.append({
+            "quality": "320kbps",
+            "format": "mp3",
+            "label": "Extract Reel Audio (MP3)",
+            "type": "audio"
+        })
+        if thumbnail:
+            available_options.append({
+                "quality": "Original",
+                "format": "jpg",
+                "label": "Download Cover / Image (JPG)",
+                "type": "image",
+                "url": thumbnail
+            })
+    elif is_fb:
+        # Facebook Video / Reel / Post
+        has_sd = any(
+            'sd' in (f.get('format_id') or '').lower() or ((f.get('height') or 0) > 0 and (f.get('height') or 0) < 720)
+            for f in formats_list
         )
-        view_count = info.get('view_count') or info.get('like_count')
-        video_id = info.get('id')
 
-        # Filter formats
-        formats_list = info.get('formats', [])
-        available_options = []
-
-        if is_insta:
-            # Instagram Reel / Video
+        available_options.append({
+            "quality": "HD",
+            "format": "mp4",
+            "label": "High Quality Video / Reel (HD MP4)",
+            "type": "video"
+        })
+        if has_sd:
+            available_options.append({
+                "quality": "SD",
+                "format": "mp4",
+                "label": "Standard Quality Video (SD MP4)",
+                "type": "video"
+            })
+        available_options.append({
+            "quality": "320kbps",
+            "format": "mp3",
+            "label": "Extract Audio (MP3 - 320 kbps)",
+            "type": "audio"
+        })
+        if thumbnail:
+            available_options.append({
+                "quality": "Original",
+                "format": "jpg",
+                "label": "Download Image / Cover (JPG)",
+                "type": "image",
+                "url": thumbnail
+            })
+    elif is_pin:
+        # Pinterest Pin Video / Image
+        has_video = any(f.get('vcodec') != 'none' for f in formats_list)
+        if has_video:
             available_options.append({
                 "quality": "HD",
                 "format": "mp4",
-                "label": "High Quality Reel Video (MP4)",
+                "label": "High Quality Pin Video (MP4)",
                 "type": "video"
             })
-            available_options.append({
-                "quality": "320kbps",
-                "format": "mp3",
-                "label": "Extract Reel Audio (MP3)",
-                "type": "audio"
-            })
-            if thumbnail:
-                available_options.append({
-                    "quality": "Original",
-                    "format": "jpg",
-                    "label": "Download Cover / Image (JPG)",
-                    "type": "image",
-                    "url": thumbnail
-                })
-        elif is_fb:
-            # Facebook Video / Reel / Post
-            has_sd = any(
-                'sd' in (f.get('format_id') or '').lower() or ((f.get('height') or 0) > 0 and (f.get('height') or 0) < 720)
-                for f in formats_list
-            )
-
-            available_options.append({
-                "quality": "HD",
-                "format": "mp4",
-                "label": "High Quality Video / Reel (HD MP4)",
-                "type": "video"
-            })
-            if has_sd:
-                available_options.append({
-                    "quality": "SD",
-                    "format": "mp4",
-                    "label": "Standard Quality Video (SD MP4)",
-                    "type": "video"
-                })
             available_options.append({
                 "quality": "320kbps",
                 "format": "mp3",
                 "label": "Extract Audio (MP3 - 320 kbps)",
                 "type": "audio"
             })
-            if thumbnail:
+        if thumbnail:
+            available_options.append({
+                "quality": "Original",
+                "format": "jpg",
+                "label": "Download Full-Res Pin Image (JPG)",
+                "type": "image",
+                "url": thumbnail
+            })
+    else:
+        # YouTube standard format heights
+        standard_heights = [1080, 720, 480, 360]
+        seen_heights = set()
+
+        for h in standard_heights:
+            has_resolution = any(
+                f.get('height') == h and f.get('vcodec') != 'none'
+                for f in formats_list
+            )
+            if has_resolution:
                 available_options.append({
-                    "quality": "Original",
-                    "format": "jpg",
-                    "label": "Download Image / Cover (JPG)",
-                    "type": "image",
-                    "url": thumbnail
-                })
-        elif is_pin:
-            # Pinterest Pin Video / Image
-            has_video = any(f.get('vcodec') != 'none' for f in formats_list)
-            if has_video:
-                available_options.append({
-                    "quality": "HD",
+                    "quality": f"{h}p",
+                    "height": h,
                     "format": "mp4",
-                    "label": "High Quality Pin Video (MP4)",
+                    "label": f"{h}p (MP4)" + (" - Full HD" if h == 1080 else (" - HD" if h == 720 else "")),
                     "type": "video"
                 })
-                available_options.append({
-                    "quality": "320kbps",
-                    "format": "mp3",
-                    "label": "Extract Audio (MP3 - 320 kbps)",
-                    "type": "audio"
-                })
-            if thumbnail:
-                available_options.append({
-                    "quality": "Original",
-                    "format": "jpg",
-                    "label": "Download Full-Res Pin Image (JPG)",
-                    "type": "image",
-                    "url": thumbnail
-                })
-        else:
-            # YouTube standard format heights
-            standard_heights = [1080, 720, 480, 360]
-            seen_heights = set()
 
-            for h in standard_heights:
-                has_resolution = any(
-                    f.get('height') == h and f.get('vcodec') != 'none'
-                    for f in formats_list
-                )
-                if has_resolution:
+        if not available_options:
+            for f in formats_list:
+                h = f.get('height')
+                if h and h not in seen_heights and f.get('vcodec') != 'none':
+                    seen_heights.add(h)
                     available_options.append({
                         "quality": f"{h}p",
                         "height": h,
                         "format": "mp4",
-                        "label": f"{h}p (MP4)" + (" - Full HD" if h == 1080 else (" - HD" if h == 720 else "")),
+                        "label": f"{h}p (MP4)",
                         "type": "video"
                     })
+            available_options.sort(key=lambda x: x['height'], reverse=True)
 
-            if not available_options:
-                for f in formats_list:
-                    h = f.get('height')
-                    if h and h not in seen_heights and f.get('vcodec') != 'none':
-                        seen_heights.add(h)
-                        available_options.append({
-                            "quality": f"{h}p",
-                            "height": h,
-                            "format": "mp4",
-                            "label": f"{h}p (MP4)",
-                            "type": "video"
-                        })
-                available_options.sort(key=lambda x: x['height'], reverse=True)
+        available_options.append({
+            "quality": "320kbps",
+            "format": "mp3",
+            "label": "High Quality Audio (MP3 - 320 kbps)",
+            "type": "audio"
+        })
+        available_options.append({
+            "quality": "128kbps",
+            "format": "mp3",
+            "label": "Standard Audio (MP3 - 128 kbps)",
+            "type": "audio"
+        })
 
-            available_options.append({
-                "quality": "320kbps",
-                "format": "mp3",
-                "label": "High Quality Audio (MP3 - 320 kbps)",
-                "type": "audio"
-            })
-            available_options.append({
-                "quality": "128kbps",
-                "format": "mp3",
-                "label": "Standard Audio (MP3 - 128 kbps)",
-                "type": "audio"
-            })
-
-        return {
-            "id": video_id,
-            "url": url,
-            "title": title,
-            "thumbnail": thumbnail,
-            "duration": duration,
-            "duration_formatted": format_duration(duration) if duration else None,
-            "uploader": uploader,
-            "view_count": view_count,
-            "platform": "instagram" if is_insta else ("facebook" if is_fb else ("pinterest" if is_pin else "youtube")),
-            "is_short": ("/shorts/" in url) or ("/reel" in url),
-            "options": available_options
-        }
+    return {
+        "id": video_id,
+        "url": url,
+        "title": title,
+        "thumbnail": thumbnail,
+        "duration": duration,
+        "duration_formatted": format_duration(duration) if duration else None,
+        "uploader": uploader,
+        "view_count": view_count,
+        "platform": "instagram" if is_insta else ("facebook" if is_fb else ("pinterest" if is_pin else "youtube")),
+        "is_short": ("/shorts/" in url) or ("/reel" in url),
+        "options": available_options
+    }
 
 def format_duration(seconds: Any) -> str:
     if not seconds:

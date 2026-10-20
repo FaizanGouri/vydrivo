@@ -50,7 +50,7 @@ interface JobStatus {
   error?: string;
 }
 
-const BACKEND_URL = "http://127.0.0.1:8000/api/v1";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 const TAB_ORDER = ["youtube", "instagram", "facebook", "pinterest"] as const;
 type PlatformTab = typeof TAB_ORDER[number];
@@ -93,9 +93,10 @@ export default function Home() {
   const [isStretching, setIsStretching] = useState(false);
 
   const updatePill = () => {
+    if (typeof window === "undefined") return;
     const container = tabContainerRef.current;
     const button = tabRefs.current[activeTab];
-    if (container && button) {
+    if (container && button && window.innerWidth >= 640) {
       const cRect = container.getBoundingClientRect();
       const bRect = button.getBoundingClientRect();
       setPillStyle({
@@ -105,6 +106,8 @@ export default function Home() {
         height: bRect.height,
         ready: true,
       });
+    } else {
+      setPillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
     }
   };
 
@@ -308,13 +311,43 @@ export default function Home() {
 
       stopAll();
 
-      // Fallback polling every 1 second
-      const pollTimer = setInterval(async () => {
-        try {
-          const checkRes = await fetch(`${BACKEND_URL}/jobs/${jobId}`);
-          if (checkRes.ok) {
-            const data: JobStatus = await checkRes.json();
+      const startFallbackPolling = () => {
+        if (pollIntervalRef.current) return;
+        pollIntervalRef.current = setInterval(async () => {
+          try {
+            const checkRes = await fetch(`${BACKEND_URL}/jobs/${jobId}`);
+            if (checkRes.ok) {
+              const data: JobStatus = await checkRes.json();
+              setJobStatus(data);
+              if (data.status === "completed") {
+                setDownloading(false);
+                stopAll();
+              } else if (data.status === "failed") {
+                setDownloading(false);
+                setError(data.error || "Download processing failed.");
+                stopAll();
+              } else if (data.status === "cancelled") {
+                setDownloading(false);
+                setError("Download was cancelled.");
+                stopAll();
+              }
+            }
+          } catch {
+            // ignore network glitch
+          }
+        }, 1200);
+      };
+
+      // Connect primary SSE live stream
+      try {
+        const sse = new EventSource(`${BACKEND_URL}/jobs/${jobId}/events`);
+        eventSourceRef.current = sse;
+
+        sse.onmessage = (event) => {
+          try {
+            const data: JobStatus = JSON.parse(event.data);
             setJobStatus(data);
+
             if (data.status === "completed") {
               setDownloading(false);
               stopAll();
@@ -322,38 +355,23 @@ export default function Home() {
               setDownloading(false);
               setError(data.error || "Download processing failed.");
               stopAll();
+            } else if (data.status === "cancelled") {
+              setDownloading(false);
+              setError("Download was cancelled.");
+              stopAll();
             }
+          } catch {
+            // SSE ping heartbeat
           }
-        } catch {
-          // ignore network glitch
-        }
-      }, 1000);
-      pollIntervalRef.current = pollTimer;
+        };
 
-      const sse = new EventSource(`${BACKEND_URL}/jobs/${jobId}/events`);
-      eventSourceRef.current = sse;
-
-      sse.onmessage = (event) => {
-        try {
-          const data: JobStatus = JSON.parse(event.data);
-          setJobStatus(data);
-
-          if (data.status === "completed") {
-            setDownloading(false);
-            stopAll();
-          } else if (data.status === "failed") {
-            setDownloading(false);
-            setError(data.error || "Download processing failed.");
-            stopAll();
-          }
-        } catch {
-          // heartbeat
-        }
-      };
-
-      sse.onerror = () => {
-        // SSE error, keep polling active
-      };
+        sse.onerror = () => {
+          // Fall back gracefully to polling only if SSE connection drops
+          startFallbackPolling();
+        };
+      } catch {
+        startFallbackPolling();
+      }
     } catch (err: unknown) {
       setDownloading(false);
       if (err instanceof Error) {
@@ -444,29 +462,78 @@ export default function Home() {
         </div>
       )}
 
-      <main className="stage relative w-full min-h-screen bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden px-6 sm:px-14 lg:px-20 pt-8 pb-8 flex flex-col justify-between">
-        
-        {/* Background Big Watermark Title with Continuous Floating Levitation */}
-        <div 
-          aria-hidden="true" 
-          className="floating-watermark absolute left-1/2 top-14 text-[clamp(100px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-white/60 via-white/30 to-transparent bg-clip-text text-transparent pointer-events-none select-none z-0"
-        >
-          VYDRIVO
+      <main className="stage relative w-full min-h-screen bg-[radial-gradient(120%_90%_at_50%_40%,#56a371_0%,#3f8a5a_45%,#2f6e48_100%)] overflow-hidden px-4 sm:px-8 md:px-14 lg:px-20 pt-6 sm:pt-8 pb-6 sm:pb-8 flex flex-col justify-between">
+      {/* Top Navigation with Mobile 2x2 Grid & Desktop Sliding Pill Selector */}
+      <nav className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 w-full">
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <a 
+            className="font-bold text-[22px] sm:text-[24px] tracking-[-0.01em] text-white flex items-center gap-1.5" 
+            href="#"
+            onClick={(e) => { e.preventDefault(); switchTab("youtube"); }}
+          >
+            vydrivo<span className="text-[#f2b632]">.</span>
+          </a>
         </div>
 
-      {/* Top Navigation with YouTube & Instagram Downloader Tabs */}
-      <nav className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-        <a 
-          className="font-bold text-[24px] tracking-[-0.01em] text-white flex items-center gap-1.5" 
-          href="#"
-          onClick={(e) => { e.preventDefault(); switchTab("youtube"); }}
-        >
-          vydrivo<span className="text-[#f2b632]">.</span>
-        </a>
+        {/* Mobile Platform Selector (Clean 2x2 Responsive Grid with >=44px Tap Targets) */}
+        <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner w-full sm:hidden">
+          <button
+            type="button"
+            onClick={() => switchTab("youtube")}
+            className={`min-h-[46px] px-3 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === "youtube"
+                ? "bg-white text-[#1f2a24] shadow-md font-bold"
+                : "bg-white/[0.08] text-white/90 hover:bg-white/[0.16]"
+            }`}
+          >
+            <Play className={`w-4 h-4 ${activeTab === "youtube" ? "fill-red-600 text-red-600" : ""}`} />
+            YouTube
+          </button>
 
+          <button
+            type="button"
+            onClick={() => switchTab("instagram")}
+            className={`min-h-[46px] px-3 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === "instagram"
+                ? "bg-gradient-to-r from-[#fdc468] via-[#df4996] to-[#4f5bd5] text-white shadow-md font-bold"
+                : "bg-white/[0.08] text-white/90 hover:bg-white/[0.16]"
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            Instagram
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchTab("facebook")}
+            className={`min-h-[46px] px-3 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === "facebook"
+                ? "bg-[#1877f2] text-white shadow-md font-bold"
+                : "bg-white/[0.08] text-white/90 hover:bg-white/[0.16]"
+            }`}
+          >
+            <FacebookIcon className="w-4 h-4" />
+            Facebook
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchTab("pinterest")}
+            className={`min-h-[46px] px-3 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === "pinterest"
+                ? "bg-[#e60023] text-white shadow-md font-bold"
+                : "bg-white/[0.08] text-white/90 hover:bg-white/[0.16]"
+            }`}
+          >
+            <PinterestIcon className="w-4 h-4" />
+            Pinterest
+          </button>
+        </div>
+
+        {/* Desktop Platform Selector (Original Horizontal Pill Slider with Sticky Stretch Animation) */}
         <div 
           ref={tabContainerRef}
-          className="relative flex flex-wrap gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner"
+          className="relative hidden sm:flex items-center gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner"
         >
           {/* Animated Sticky Pill Slider Background */}
           {pillStyle.ready && (
@@ -547,42 +614,52 @@ export default function Home() {
       </nav>
 
       {/* Hero Section (Centered Clean & Focused Downloader) */}
-      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center py-10">
+      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center py-6 sm:py-10">
         
         <div 
           key={activeTab}
-          className={`w-full flex flex-col items-center justify-center ${
+          className={`w-full max-w-[720px] flex flex-col items-center justify-center ${
             tabDirection === "right" ? "tab-slide-right" : "tab-slide-left"
           }`}
         >
-          {/* Centered Floating Badge */}
-          <div className="floating-badge inline-flex items-center gap-3 py-2 pl-2 pr-5 rounded-full bg-white/[0.18] border border-white/[0.35] mb-5 shadow-lg backdrop-blur-md">
-            <i className="w-[34px] h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold not-italic">
-              ✓
-            </i>
-            <div className="text-left">
-              <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">
-                {activeTab === "youtube"
-                  ? "+10 lakh"
-                  : activeTab === "instagram"
-                  ? "+5 lakh"
-                  : activeTab === "facebook"
-                  ? "+8 lakh"
-                  : "+6 lakh"}
-              </b>
-              <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">
-                {activeTab === "youtube"
-                  ? "VIDEOS SAVED"
-                  : activeTab === "instagram"
-                  ? "REELS & POSTS SAVED"
-                  : activeTab === "facebook"
-                  ? "CLIPS & POSTS SAVED"
-                  : "PINS & PHOTOS SAVED"}
-              </small>
+          {/* Centered Floating Badge with Aligned Background Watermark */}
+          <div className="relative inline-flex items-center justify-center mb-4 sm:mb-5">
+            {/* Background Big Watermark Title Centered on Badge (Shifted 50px upward) */}
+            <div 
+              aria-hidden="true" 
+              className="floating-watermark pointer-events-none select-none absolute left-1/2 top-[calc(50%-50px)] text-[clamp(82px,22vw,140px)] sm:text-[clamp(120px,18vw,250px)] font-[800] tracking-[0.01em] leading-none whitespace-nowrap bg-gradient-to-b from-[#d4f8e0]/60 via-[#a3e8ba]/35 to-transparent sm:from-white/60 sm:via-white/30 sm:to-transparent bg-clip-text text-transparent -z-10"
+            >
+              VYDRIVO
+            </div>
+
+            <div className="floating-badge inline-flex items-center gap-2.5 sm:gap-3 py-1.5 sm:py-2 pl-1.5 sm:pl-2 pr-4 sm:pr-5 rounded-full bg-white/[0.18] border border-white/[0.35] shadow-lg backdrop-blur-md">
+              <i className="w-[30px] sm:w-[34px] h-[30px] sm:h-[34px] rounded-full bg-[#f2b632] text-[#1f2a24] grid place-items-center font-bold text-sm sm:text-base shrink-0 not-italic">
+                ✓
+              </i>
+              <div className="text-left">
+                <b className="block text-[#f2b632] text-[15px] sm:text-[17px] leading-tight font-extrabold">
+                  {activeTab === "youtube"
+                    ? "+10 lakh"
+                    : activeTab === "instagram"
+                    ? "+5 lakh"
+                    : activeTab === "facebook"
+                    ? "+8 lakh"
+                    : "+6 lakh"}
+                </b>
+                <small className="text-[9px] sm:text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">
+                  {activeTab === "youtube"
+                    ? "VIDEOS SAVED"
+                    : activeTab === "instagram"
+                    ? "REELS & POSTS SAVED"
+                    : activeTab === "facebook"
+                    ? "CLIPS & POSTS SAVED"
+                    : "PINS & PHOTOS SAVED"}
+                </small>
+              </div>
             </div>
           </div>
 
-          <h1 className="text-[clamp(36px,5vw,62px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[20ch]">
+          <h1 className="text-[clamp(28px,6vw,58px)] leading-[1.12] sm:leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[20ch] px-1 sm:px-0">
             {activeTab === "youtube"
               ? "Save any video you love"
               : activeTab === "instagram"
@@ -592,7 +669,7 @@ export default function Home() {
               : "Save any Pinterest Pin or Video"}
           </h1>
 
-          <p className="mt-3 italic font-light text-[22px] text-white/85">
+          <p className="mt-2 sm:mt-3 italic font-light text-[17px] sm:text-[20px] md:text-[22px] text-white/90 max-w-[34ch] sm:max-w-none">
             {activeTab === "youtube"
               ? "paste the link, pick a format, done"
               : activeTab === "instagram"
@@ -602,7 +679,7 @@ export default function Home() {
               : "paste the pin link, download in full resolution"}
           </p>
 
-          <p className="mt-4 max-w-[50ch] text-[15px] sm:text-[16px] leading-relaxed text-white/90">
+          <p className="mt-3 sm:mt-4 max-w-[50ch] text-[14px] sm:text-[15px] md:text-[16px] leading-relaxed text-white/90 px-1 sm:px-0">
             {activeTab === "youtube"
               ? "Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop."
               : activeTab === "instagram"
@@ -613,7 +690,10 @@ export default function Home() {
           </p>
 
           {/* Input Box Form */}
-          <form onSubmit={handleInspect} className="mt-8 flex gap-2 p-1.5 rounded-full bg-white/[0.96] w-full max-w-[560px] shadow-[0_16px_35px_-12px_rgba(0,0,0,0.4)] focus-within:ring-3 focus-within:ring-[#f2b632]">
+          <form 
+            onSubmit={handleInspect} 
+            className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-2 p-2 sm:p-1.5 rounded-2xl sm:rounded-full bg-white/[0.96] w-full max-w-[560px] shadow-[0_16px_35px_-12px_rgba(0,0,0,0.4)] focus-within:ring-3 focus-within:ring-[#f2b632] transition-all"
+          >
             <input
               type="url"
               value={url}
@@ -627,12 +707,12 @@ export default function Home() {
                   ? "Paste Facebook Video, Reel, or Post URL here (e.g. fb.watch/... or facebook.com/...)"
                   : "Paste Pinterest Pin or Video URL here (e.g. pin.it/... or pinterest.com/pin/...)"
               }
-              className="flex-1 min-w-0 border-0 bg-transparent px-5 py-2.5 font-medium text-[15px] sm:text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
+              className="w-full flex-1 min-w-0 border-0 bg-transparent px-4 sm:px-5 py-3 sm:py-2.5 font-medium text-[14.5px] sm:text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none min-h-[44px]"
             />
             <button 
               type="submit" 
               disabled={loading}
-              className={`border-0 cursor-pointer font-semibold text-[15px] px-8 py-3.5 rounded-full text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2 shadow-md ${
+              className={`w-full sm:w-auto border-0 cursor-pointer font-semibold text-[15px] px-7 sm:px-8 py-3 sm:py-3.5 min-h-[46px] rounded-xl sm:rounded-full text-white transition-all transform hover:-translate-y-0.5 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shrink-0 ${
                 activeTab === "instagram"
                   ? "bg-gradient-to-r from-[#df4996] to-[#4f5bd5] hover:opacity-95"
                   : activeTab === "facebook"
@@ -647,15 +727,15 @@ export default function Home() {
           </form>
 
           {/* Feedback Messages */}
-          {msg && <p className="mt-4 text-[14px] text-white font-medium">{msg}</p>}
-          {error && <p className="mt-4 text-[14px] text-[#ffe29a] font-medium flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
+          {msg && <p className="mt-3 sm:mt-4 text-[13.5px] sm:text-[14px] text-white font-medium">{msg}</p>}
+          {error && <p className="mt-3 sm:mt-4 text-[13.5px] sm:text-[14px] text-[#ffe29a] font-medium flex items-center justify-center gap-1.5 px-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>{error}</span></p>}
         </div>
       </section>
 
       {/* Dynamic Video Preview / Processing Modal / Drawer if video is fetched */}
       {videoData && (
-        <section className="relative z-20 mt-8 p-5 sm:p-6 rounded-[22px] bg-[#f3f8f1] text-[#1f2a24] shadow-2xl animate-in fade-in slide-in-from-bottom-6">
-          <div className="flex flex-col md:flex-row gap-5 items-start justify-between">
+        <section className="relative z-20 mt-6 sm:mt-8 p-4 sm:p-6 rounded-[20px] sm:rounded-[22px] bg-[#f3f8f1] text-[#1f2a24] shadow-2xl animate-in fade-in slide-in-from-bottom-6 w-full max-w-[850px] mx-auto">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-5 items-start justify-between">
             
             {/* Thumbnail */}
             <div className="relative rounded-xl overflow-hidden bg-slate-200 shrink-0 w-full md:w-60 aspect-video shadow-md">
@@ -680,20 +760,20 @@ export default function Home() {
             </div>
 
             {/* Video Details */}
-            <div className="flex-1 space-y-2">
-              <h2 className="text-base sm:text-lg font-bold text-[#1f2a24] leading-snug line-clamp-2">
+            <div className="flex-1 w-full space-y-2 text-left">
+              <h2 className="text-base sm:text-lg font-bold text-[#1f2a24] leading-snug line-clamp-2 break-words">
                 {videoData.title}
               </h2>
               <div className="flex flex-wrap items-center gap-3 text-xs text-[#53665a]">
                 {videoData.uploader && (
                   <span className="flex items-center gap-1 font-medium">
-                    <User className="w-3.5 h-3.5" />
-                    {videoData.uploader}
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate max-w-[200px]">{videoData.uploader}</span>
                   </span>
                 )}
                 {videoData.view_count && (
                   <span className="flex items-center gap-1 font-medium">
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="w-3.5 h-3.5 shrink-0" />
                     {formatViews(videoData.view_count)}
                   </span>
                 )}
@@ -702,7 +782,7 @@ export default function Home() {
               {/* Quality selector buttons */}
               <div className="pt-2">
                 <p className="text-xs font-bold text-[#1f2a24] uppercase tracking-wider mb-2">Available Options:</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {videoData.options.map((opt, idx) => {
                     const isSelected = selectedOption?.quality === opt.quality && selectedOption?.type === opt.type;
                     return (
@@ -711,20 +791,20 @@ export default function Home() {
                         type="button"
                         onClick={() => setSelectedOption(opt)}
                         disabled={downloading}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                        className={`px-3 py-2 sm:py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 min-h-[38px] ${
                           isSelected
                             ? "bg-[#3f8a5a] text-white border-[#3f8a5a] shadow-sm"
                             : "bg-white text-[#1f2a24] border-slate-300 hover:border-[#3f8a5a]"
                         }`}
                       >
                         {opt.type === "audio" ? (
-                          <Music className="w-3 h-3" />
+                          <Music className="w-3 h-3 shrink-0" />
                         ) : opt.type === "image" ? (
-                          <ImageIcon className="w-3 h-3" />
+                          <ImageIcon className="w-3 h-3 shrink-0" />
                         ) : (
-                          <Play className="w-3 h-3" />
+                          <Play className="w-3 h-3 shrink-0" />
                         )}
-                        {opt.label}
+                        <span className="truncate max-w-[240px]">{opt.label}</span>
                       </button>
                     );
                   })}
@@ -733,13 +813,13 @@ export default function Home() {
             </div>
 
             {/* Download Button / Progress */}
-            <div className="w-full md:w-64 shrink-0 flex flex-col justify-center">
+            <div className="w-full md:w-64 shrink-0 flex flex-col justify-center pt-2 md:pt-0">
               {!jobStatus || jobStatus.status === "failed" ? (
                 <button
                   type="button"
                   onClick={handleStartDownload}
                   disabled={downloading || !selectedOption}
-                  className="w-full py-3.5 rounded-full bg-[#f2b632] hover:bg-[#e0a72c] text-[#1f2a24] font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3.5 min-h-[46px] rounded-xl sm:rounded-full bg-[#f2b632] hover:bg-[#e0a72c] active:scale-[0.99] text-[#1f2a24] font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {downloading ? (
                     <>
@@ -758,7 +838,7 @@ export default function Home() {
                   <a
                     href={`${BACKEND_URL}/jobs/${activeJobId}/download`}
                     download
-                    className="w-full py-3.5 rounded-full bg-[#3f8a5a] hover:bg-[#2f6e48] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3.5 min-h-[46px] rounded-xl sm:rounded-full bg-[#3f8a5a] hover:bg-[#2f6e48] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
                   >
                     <Download className="w-4 h-4" />
                     Save File ({formatFileSize(jobStatus.file_size)})
@@ -769,7 +849,7 @@ export default function Home() {
                       setJobStatus(null);
                       setActiveJobId(null);
                     }}
-                    className="text-xs text-[#53665a] hover:text-[#1f2a24] inline-flex items-center gap-1 mt-1 cursor-pointer"
+                    className="text-xs text-[#53665a] hover:text-[#1f2a24] inline-flex items-center gap-1 mt-1 cursor-pointer min-h-[36px] px-2"
                   >
                     <RefreshCw className="w-3 h-3" />
                     Pick another format
@@ -809,7 +889,7 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="relative z-10 mt-5 pt-4 border-t border-white/[0.18] flex flex-wrap justify-between items-center gap-3 text-[12.5px] text-white/75" id="contact">
+      <footer className="relative z-10 mt-6 pt-4 border-t border-white/[0.18] flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 text-center sm:text-left text-[11.5px] sm:text-[12.5px] text-white/75" id="contact">
         <span>&copy; 2026 VYDRIVO. All rights reserved.</span>
         <span>Download only content you own or have permission to save.</span>
       </footer>

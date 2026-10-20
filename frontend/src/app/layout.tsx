@@ -9,8 +9,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "VYDRIVO – YouTube, Instagram & Facebook Media Downloader",
-  description: "Fast, simple, and free video and audio downloader for YouTube, Instagram, and Facebook with MP4, MP3, and image export.",
+  title: "VYDRIVO – YouTube, Instagram, Facebook & Pinterest Media Downloader",
+  description: "Fast, simple, and free video and audio downloader for YouTube, Instagram, Facebook, and Pinterest with MP4, MP3, and high-resolution image export.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

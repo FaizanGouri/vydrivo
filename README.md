@@ -271,10 +271,51 @@ Serves the finalized file with `Content-Disposition: attachment; filename*=UTF-8
 
 ## 🔒 Security & Best Practices
 
-- **Strict URL Validation**: Validates regex patterns for YouTube, Instagram, Facebook, and Pinterest to prevent SSRF and internal network probing.
-- **Temporary File Lifecycle**: Downloaded files are saved to an isolated `downloads/` directory and purged automatically after 30 minutes.
-- **Sanitized Filenames**: Media titles are stripped of illegal filesystem characters and safe-encoded according to RFC 5987.
+- **Centralized SSRF & DNS Validation**: Validates exact platform hostnames against a strict allowlist. Resolves hostnames and rejects loopback (`127.0.0.1`), private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), and cloud metadata targets (`169.254.169.254`, `0.0.0.0/8`, `::1`).
+- **Redirect Revalidation**: Secondary media and pin scraping manually re-validates each redirect destination against SSRF rules.
+- **In-Memory Rate Limiting**: Per-IP sliding-window limits protect `/api/v1/inspect` (30 req/min) and `/api/v1/jobs` (10 req/min) with HTTP 429 Retry-After responses.
+- **Bounded Worker Pool & Queue**: Concurrency is limited to a bounded thread pool (default 4 workers, queue capacity 25) with automatic rejection (HTTP 503) during saturation.
+- **Path Traversal Protection**: File delivery strictly validates that requested file paths reside within the real `downloads/` directory.
+- **Temporary File Lifecycle**: Downloaded files are purged automatically after 30 minutes, with startup disk scanning removing orphaned files left from past server interruptions.
+- **Sanitized Filenames**: Media titles are stripped of dangerous filesystem characters and safe-encoded according to RFC 5987.
+- **Safe CORS Configuration**: Explicit configurable origins via `ALLOWED_ORIGINS`; wildcards are never paired with credentials.
 - **No Secret Storage**: Does not log or store cookies, personal authentication tokens, or user data.
+
+---
+
+## 🧪 Automated Testing
+
+The backend includes a comprehensive automated test suite (21 unit tests) covering security, SSRF defense, job state transitions, API contract validation, and extraction mocks.
+
+To run the automated tests:
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Run the full test suite
+python -m unittest discover -s tests -v
+```
+
+---
+
+## ⚙️ Environment Variables Reference
+
+### Backend (`backend/.env`)
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `HOST` | `127.0.0.1` | ASGI server bind address |
+| `PORT` | `8000` | ASGI server port |
+| `ALLOWED_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of allowed CORS origins |
+| `MAX_CONCURRENT_JOBS` | `4` | Maximum parallel download/conversion threads |
+| `MAX_QUEUE_CAPACITY` | `25` | Maximum queued jobs before HTTP 503 saturation |
+| `JOB_TIMEOUT_SECONDS` | `300` | Execution timeout per download task |
+| `FFMPEG_PATH` | *(Auto-detected)* | Path to custom FFmpeg executable |
+
+### Frontend (`frontend/.env.local`)
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000/api/v1` | Public backend API endpoint base URL |
 
 ---
 

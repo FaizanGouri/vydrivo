@@ -30,10 +30,10 @@ body {
 /* Big VYDRIVO continuous smooth floating levitation */
 @keyframes float-watermark {
   0%, 100% {
-    transform: translate(-50%, 0px);
+    transform: translate(-50%, -50%);
   }
   50% {
-    transform: translate(-50%, -18px);
+    transform: translate(-50%, calc(-50% - 12px));
   }
 }
 
@@ -121,7 +121,7 @@ body {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: clamp(100px, 24vw, 320px);
+  font-size: clamp(52px, 18vw, 320px);
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
