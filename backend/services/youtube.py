@@ -9,6 +9,10 @@ from services.security import validate_url, safe_http_fetch, SecurityValidationE
 
 logger = logging.getLogger("vydrivo.youtube")
 
+class MediaProviderRateLimitError(Exception):
+    """Raised when the upstream provider (e.g. YouTube) returns HTTP 429 Too Many Requests."""
+    pass
+
 ALLOWED_CLIENTS = {
     'web', 'web_safari', 'web_embedded', 'web_music', 'web_creator',
     'android', 'android_vr', 'ios', 'visionos', 'mweb', 'tv', 'tv_downgraded', 'tv_simply'
@@ -35,6 +39,10 @@ class SanitizedYTDLPLogger:
     signatures, or IP addresses can leak into logs. For unclassified strings, strictly
     strips all query parameters and sensitive parameter assignments.
     """
+    def __init__(self):
+        self.encountered_429 = False
+        self.encountered_403 = False
+
     @staticmethod
     def categorize_message(msg: Any) -> Optional[str]:
         text = str(msg).strip()
@@ -126,9 +134,19 @@ class SanitizedYTDLPLogger:
         pass
 
     def warning(self, msg: str):
+        text = str(msg)
+        if "429" in text or "Too Many Requests" in text:
+            self.encountered_429 = True
+        if "403" in text or "Forbidden" in text:
+            self.encountered_403 = True
         logger.warning("yt-dlp warning: %s", self.sanitize_message(msg))
 
     def error(self, msg: str):
+        text = str(msg)
+        if "429" in text or "Too Many Requests" in text:
+            self.encountered_429 = True
+        if "403" in text or "Forbidden" in text:
+            self.encountered_403 = True
         logger.error("yt-dlp error: %s", self.sanitize_message(msg))
 
 # YouTube URL regex matching standard videos, shorts, and music
@@ -275,13 +293,20 @@ def extract_video_info(url: str) -> Dict[str, Any]:
         if m:
             clean_url = f"https://www.youtube.com/watch?v={m.group(1)}"
 
+    ydl_logger = SanitizedYTDLPLogger()
     ydl_opts = {
         'skip_download': True,
         'quiet': True,
         'no_warnings': False,
-        'logger': SanitizedYTDLPLogger(),
+        'logger': ydl_logger,
         'extract_flat': False,
         'js_runtimes': get_js_runtime_config(),
+        'remote_components': {'ejs:github'},
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'visionos', 'web']
+            }
+        }
     }
 
     is_insta = is_valid_instagram_url(url)
@@ -318,6 +343,10 @@ def extract_video_info(url: str) -> Dict[str, Any]:
                         }
                     ]
                 }
+        if ydl_logger.encountered_429 or "429" in str(e) or "Too Many Requests" in str(e):
+            raise MediaProviderRateLimitError(
+                "The media provider is currently rate-limiting requests. Please try again in a few minutes."
+            ) from e
         raise e
 # Determine title, thumbnail, duration, author
     if is_insta:

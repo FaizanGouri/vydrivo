@@ -215,6 +215,7 @@ class JobManager:
             elif d['status'] == 'finished':
                 job.update_progress(99.0, "Processing...", "")
 
+        ydl_logger = None
         try:
             ffmpeg_path = get_ffmpeg_path()
             if ffmpeg_path:
@@ -281,14 +282,21 @@ class JobManager:
                 if m:
                     download_url = f"https://www.youtube.com/watch?v={m.group(1)}"
 
+            ydl_logger = SanitizedYTDLPLogger()
             ydl_opts: Dict[str, Any] = {
                 'outtmpl': output_template,
                 'progress_hooks': [progress_hook],
                 'quiet': True,
                 'no_warnings': False,
-                'logger': SanitizedYTDLPLogger(),
+                'logger': ydl_logger,
                 'socket_timeout': 15,
                 'js_runtimes': get_js_runtime_config(),
+                'remote_components': {'ejs:github'},
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'visionos', 'web']
+                    }
+                }
             }
             if ffmpeg_path:
                 ydl_opts['ffmpeg_location'] = ffmpeg_path
@@ -394,7 +402,7 @@ class JobManager:
                 logger.error("Job %s failed with exception: %s", job.job_id, sanitized_diag)
                 if "FFmpeg is required" in err_msg:
                     job.set_status("failed", error="FFmpeg is required for MP3 audio conversion, but FFmpeg was not found on the server.")
-                elif "429" in err_msg or "Too Many Requests" in err_msg:
+                elif (ydl_logger and ydl_logger.encountered_429) or "429" in err_msg or "Too Many Requests" in err_msg:
                     job.set_status("failed", error="Media provider is temporarily rate-limiting downloads. Please try again in a few minutes.")
                 else:
                     job.set_status("failed", error="Media processing failed. Please check the link or format.")

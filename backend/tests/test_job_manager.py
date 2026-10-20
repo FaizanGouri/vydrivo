@@ -109,8 +109,9 @@ class TestJobManager(unittest.TestCase):
             manager._run_job(job)
 
             call_args = mock_ydl_class.call_args[0][0]
-            # Ensure no explicit player_client override (preserving yt-dlp default selection)
-            self.assertNotIn("extractor_args", call_args)
+            self.assertIn("extractor_args", call_args)
+            self.assertEqual(call_args["extractor_args"]["youtube"]["player_client"], ['android', 'visionos', 'web'])
+            self.assertEqual(call_args.get("remote_components"), {'ejs:github'})
             self.assertFalse(call_args.get("no_warnings", True))
             self.assertIsNotNone(call_args.get("logger"))
             self.assertIn("js_runtimes", call_args)

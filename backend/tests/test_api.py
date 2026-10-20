@@ -64,6 +64,22 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("Access-Control-Allow-Origin", resp.headers)
         self.assertEqual(resp.headers["Access-Control-Allow-Origin"], "http://localhost:3000")
 
+    def test_inspect_handles_media_provider_rate_limit_error(self):
+        from routes.api import inspect_video, InspectRequest
+        from services.youtube import MediaProviderRateLimitError
+        from unittest.mock import patch, MagicMock
+        from fastapi import HTTPException
+
+        mock_req = MagicMock()
+        mock_req.headers.get.return_value = "192.168.1.102"
+        mock_req.client.host = "192.168.1.102"
+
+        with patch("routes.api.extract_video_info", side_effect=MediaProviderRateLimitError("Rate limited")):
+            with self.assertRaises(HTTPException) as ctx:
+                inspect_video(InspectRequest(url="https://www.youtube.com/watch?v=0ZX0jCAvfPY"), mock_req)
+            self.assertEqual(ctx.exception.status_code, 429)
+            self.assertIn("rate-limiting", ctx.exception.detail)
+
     def test_inspect_handles_429_rate_limiting(self):
         from routes.api import inspect_video, InspectRequest
         from unittest.mock import patch, MagicMock

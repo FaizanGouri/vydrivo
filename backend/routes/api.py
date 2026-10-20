@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from services.security import validate_url, SecurityValidationError, sanitize_filename
-from services.youtube import is_valid_supported_url, extract_video_info, SanitizedYTDLPLogger
+from services.youtube import is_valid_supported_url, extract_video_info, SanitizedYTDLPLogger, MediaProviderRateLimitError
 from services.job_manager import job_manager, QueueFullError, DOWNLOADS_DIR
 from services.rate_limiter import inspect_limiter, job_limiter
 
@@ -72,6 +72,12 @@ def inspect_video(req: InspectRequest, request: Request):
         if not info:
             raise Exception("No media metadata was returned by the extractor.")
         return {"success": True, "data": info}
+    except MediaProviderRateLimitError as rle:
+        logger.warning("Upstream rate limit from IP %s: %s", client_ip, rle)
+        raise HTTPException(
+            status_code=429,
+            detail="The media provider is currently rate-limiting requests. Please try again in a few minutes."
+        )
     except Exception as e:
         err_msg = str(e)
         sanitized_diag = SanitizedYTDLPLogger.sanitize_message(err_msg)

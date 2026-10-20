@@ -95,13 +95,44 @@ class TestExtraction(unittest.TestCase):
         # Verify that extract_info was called with normalized watch URL
         mock_ydl.extract_info.assert_called_with("https://www.youtube.com/watch?v=0ZX0jCAvfPY", download=False)
         
-        # Verify default client selection is preserved (no explicit player_client override)
+        # Verify extractor_args includes android client fallback and remote challenge solver
         call_args = mock_ydl_class.call_args[0][0]
-        self.assertNotIn("extractor_args", call_args)
+        self.assertIn("extractor_args", call_args)
+        self.assertEqual(call_args["extractor_args"]["youtube"]["player_client"], ['android', 'visionos', 'web'])
+        self.assertEqual(call_args.get("remote_components"), {'ejs:github'})
         self.assertFalse(call_args.get("no_warnings", True))
         self.assertIsNotNone(call_args.get("logger"))
         self.assertIn("js_runtimes", call_args)
         self.assertIn("deno", call_args["js_runtimes"])
+
+    def test_sanitized_logger_tracks_429_and_403_flags(self):
+        from services.youtube import SanitizedYTDLPLogger
+        logger = SanitizedYTDLPLogger()
+        self.assertFalse(logger.encountered_429)
+        self.assertFalse(logger.encountered_403)
+
+        logger.warning("WARNING: [youtube] HTTP Error 429: Too Many Requests. Retrying (1/3)...")
+        self.assertTrue(logger.encountered_429)
+
+        logger.error("ERROR: [youtube] HTTP Error 403: Forbidden")
+        self.assertTrue(logger.encountered_403)
+
+    @patch("yt_dlp.YoutubeDL")
+    def test_extract_video_info_raises_rate_limit_error_on_429_warning(self, mock_ydl_class):
+        from services.youtube import MediaProviderRateLimitError
+        mock_ydl = MagicMock()
+        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+
+        def simulate_429_then_fail(url, download=False):
+            # Simulate yt-dlp logger recording 429 warning during extraction
+            ydl_instance_logger = mock_ydl_class.call_args[0][0]['logger']
+            ydl_instance_logger.warning("HTTP Error 429: Too Many Requests")
+            raise Exception("Failed to extract any player response")
+
+        mock_ydl.extract_info.side_effect = simulate_429_then_fail
+
+        with self.assertRaises(MediaProviderRateLimitError):
+            extract_video_info("https://www.youtube.com/watch?v=0ZX0jCAvfPY")
 
     def test_js_runtime_configuration(self):
         import os
