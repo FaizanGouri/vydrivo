@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import GooeyLiquidNav from "@/components/GooeyLiquidNav";
 import { 
   Download, 
   CheckCircle2, 
@@ -80,6 +79,55 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [videoData, setVideoData] = useState<VideoData | null>(null);
+
+  // Sticky tab slider position & stretch animation
+  const tabContainerRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<{ [key in PlatformTab]?: HTMLButtonElement | null }>({});
+  const [pillStyle, setPillStyle] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    ready: boolean;
+  }>({ left: 0, top: 0, width: 0, height: 0, ready: false });
+  const [isStretching, setIsStretching] = useState(false);
+
+  const updatePill = () => {
+    const container = tabContainerRef.current;
+    const button = tabRefs.current[activeTab];
+    if (container && button) {
+      const cRect = container.getBoundingClientRect();
+      const bRect = button.getBoundingClientRect();
+      setPillStyle({
+        left: bRect.left - cRect.left,
+        top: bRect.top - cRect.top,
+        width: bRect.width,
+        height: bRect.height,
+        ready: true,
+      });
+    }
+  };
+
+  useEffect(() => {
+    updatePill();
+    setIsStretching(true);
+    const t = setTimeout(() => setIsStretching(false), 380);
+    const onResize = () => updatePill();
+    window.addEventListener("resize", onResize);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [activeTab]);
+
+  const activePillBg =
+    activeTab === "youtube"
+      ? "bg-white shadow-[0_4px_16px_rgba(255,255,255,0.3)]"
+      : activeTab === "instagram"
+      ? "bg-gradient-to-r from-[#fdc468] via-[#df4996] to-[#4f5bd5] shadow-[0_4px_16px_rgba(223,73,150,0.35)]"
+      : activeTab === "facebook"
+      ? "bg-[#1877f2] shadow-[0_4px_16px_rgba(24,119,242,0.35)]"
+      : "bg-[#e60023] shadow-[0_4px_16px_rgba(230,0,35,0.35)]";
 
   const switchTab = (tab: PlatformTab) => {
     if (tab === activeTab) return;
@@ -416,11 +464,86 @@ export default function Home() {
           vydrivo<span className="text-[#f2b632]">.</span>
         </a>
 
-        <GooeyLiquidNav
-          activeTab={activeTab}
-          onTabChange={switchTab}
-          direction={tabDirection}
-        />
+        <div 
+          ref={tabContainerRef}
+          className="relative flex flex-wrap gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner"
+        >
+          {/* Animated Sticky Pill Slider Background */}
+          {pillStyle.ready && (
+            <div
+              className={`absolute rounded-full pointer-events-none transition-all duration-380 ease-[cubic-bezier(0.34,1.45,0.64,1)] ${activePillBg} ${
+                isStretching
+                  ? tabDirection === "right"
+                    ? "scale-x-[1.08] origin-left"
+                    : "scale-x-[1.08] origin-right"
+                  : "scale-x-100"
+              }`}
+              style={{
+                left: `${pillStyle.left}px`,
+                top: `${pillStyle.top}px`,
+                width: `${pillStyle.width}px`,
+                height: `${pillStyle.height}px`,
+                zIndex: 0,
+              }}
+            />
+          )}
+
+          <button 
+            ref={(el) => { tabRefs.current["youtube"] = el; }}
+            type="button"
+            onClick={() => switchTab("youtube")}
+            className={`relative z-10 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "youtube"
+                ? "text-[#1f2a24]"
+                : "text-white hover:bg-white/10"
+            }`}
+          >
+            <Play className={`w-3.5 h-3.5 transition-colors duration-300 ${activeTab === "youtube" ? "fill-red-600 text-red-600" : ""}`} />
+            YouTube
+          </button>
+
+          <button 
+            ref={(el) => { tabRefs.current["instagram"] = el; }}
+            type="button"
+            onClick={() => switchTab("instagram")}
+            className={`relative z-10 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "instagram"
+                ? "text-white font-bold"
+                : "text-white hover:bg-white/10"
+            }`}
+          >
+            <Camera className="w-3.5 h-3.5" />
+            Instagram Reel / Image
+          </button>
+
+          <button 
+            ref={(el) => { tabRefs.current["facebook"] = el; }}
+            type="button"
+            onClick={() => switchTab("facebook")}
+            className={`relative z-10 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "facebook"
+                ? "text-white font-bold"
+                : "text-white hover:bg-white/10"
+            }`}
+          >
+            <FacebookIcon className="w-3.5 h-3.5" />
+            Facebook Video / Image
+          </button>
+
+          <button 
+            ref={(el) => { tabRefs.current["pinterest"] = el; }}
+            type="button"
+            onClick={() => switchTab("pinterest")}
+            className={`relative z-10 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "pinterest"
+                ? "text-white font-bold"
+                : "text-white hover:bg-white/10"
+            }`}
+          >
+            <PinterestIcon className="w-3.5 h-3.5" />
+            Pinterest Pin / Video
+          </button>
+        </div>
       </nav>
 
       {/* Hero Section (Centered Clean & Focused Downloader) */}
