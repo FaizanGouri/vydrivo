@@ -277,6 +277,18 @@ def get_js_runtime_config() -> Dict[str, Any]:
         return {'deno': {'path': deno_path}}
     return {'deno': {}}
 
+def get_impersonate_target():
+    """
+    Returns Chrome ImpersonateTarget if curl_cffi is available,
+    mimicking genuine Chrome browser TLS fingerprint to bypass cloud datacenter IP blocks.
+    """
+    try:
+        from yt_dlp.networking.impersonate import ImpersonateTarget
+        import curl_cffi
+        return ImpersonateTarget.from_str('chrome')
+    except Exception:
+        return None
+
 def extract_video_info(url: str) -> Dict[str, Any]:
     """
     Extracts metadata, thumbnails, duration, and available quality formats
@@ -308,6 +320,10 @@ def extract_video_info(url: str) -> Dict[str, Any]:
             }
         }
     }
+
+    imp = get_impersonate_target()
+    if imp:
+        ydl_opts['impersonate'] = imp
 
     is_insta = is_valid_instagram_url(url)
     is_fb = is_valid_facebook_url(url)

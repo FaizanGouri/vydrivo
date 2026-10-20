@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from services.security import validate_url, SecurityValidationError, sanitize_filename
-from services.youtube import is_valid_supported_url, extract_video_info, SanitizedYTDLPLogger, MediaProviderRateLimitError
+from services.youtube import is_valid_supported_url, extract_video_info, SanitizedYTDLPLogger, MediaProviderRateLimitError, get_impersonate_target
 from services.job_manager import job_manager, QueueFullError, DOWNLOADS_DIR
 from services.rate_limiter import inspect_limiter, job_limiter
 
@@ -36,7 +36,9 @@ def health_check():
     return {
         "status": "ok",
         "service": "vydrivo-media-engine",
-        "version": "1.0.0"
+        "version": "1.0.3",
+        "player_client": "web_embedded",
+        "tls_impersonate": bool(get_impersonate_target())
     }
 
 @router.post("/inspect")

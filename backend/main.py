@@ -17,12 +17,19 @@ if scripts_dir not in os.environ.get("PATH", ""):
     os.environ["PATH"] = scripts_dir + os.pathsep + os.environ.get("PATH", "")
 
 has_deno = bool(shutil.which("deno"))
+has_curl_cffi = False
+try:
+    import curl_cffi
+    has_curl_cffi = True
+except Exception:
+    pass
 
 logger.info(
-    "VYDRIVO Media Engine startup diagnostics | Python: %s | yt-dlp: %s | Deno JS runtime: %s",
+    "VYDRIVO Media Engine v1.0.3 startup diagnostics | Python: %s | yt-dlp: %s | Deno JS runtime: %s | Chrome TLS Impersonate: %s",
     sys.version.split()[0],
     yt_dlp.version.__version__,
-    "available" if has_deno else "not found"
+    "available" if has_deno else "not found",
+    "available" if has_curl_cffi else "not available"
 )
 
 from fastapi import FastAPI

@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 import yt_dlp
 
 from services.security import safe_http_fetch, sanitize_filename
-from services.youtube import SanitizedYTDLPLogger, get_js_runtime_config
+from services.youtube import SanitizedYTDLPLogger, get_js_runtime_config, get_impersonate_target
 
 logger = logging.getLogger("vydrivo.jobs")
 
@@ -298,6 +298,9 @@ class JobManager:
                     }
                 }
             }
+            imp = get_impersonate_target()
+            if imp:
+                ydl_opts['impersonate'] = imp
             if ffmpeg_path:
                 ydl_opts['ffmpeg_location'] = ffmpeg_path
 
