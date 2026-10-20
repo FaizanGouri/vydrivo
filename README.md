@@ -1,90 +1,169 @@
-# VYDRIVO – Modern All-in-One Media Downloader (YouTube, Instagram, Facebook & Pinterest)
+# 🎬 VYDRIVO – High-Performance Multi-Platform Media Downloader
 
 <p align="center">
-  <b>A sleek, high-performance web application to inspect and download YouTube videos & Shorts, Instagram Reels & Posts, Facebook Videos, and Pinterest Pins & Idea Videos in high quality (MP4 video, full-resolution JPG images) or extract crystal-clear MP3 audio with real-time SSE progress streaming.</b>
+  <img src="frontend/public/icon.png" alt="VYDRIVO Logo" width="100" height="100" style="border-radius: 20px;" />
+</p>
+
+<p align="center">
+  <b>A sleek, modern, all-in-one media downloader designed for YouTube, Instagram, Facebook, and Pinterest.</b><br/>
+  Download high-definition videos (MP4), extract crystal-clear audio (MP3 up to 320 kbps), and grab untouched full-resolution graphics and photos (JPG) with real-time SSE progress streaming.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS_4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white" alt="FFmpeg" />
 </p>
 
 ---
 
-## 🌟 Highlights & Features
+## 🌟 Supported Platforms & Capabilities
 
-- **Full-Screen Forest Green Aesthetic**: Clean, responsive, and immersive edge-to-edge design.
-- **Navbar Multi-Platform Switcher**: Easily switch between **YouTube**, **Instagram**, **Facebook**, and **Pinterest** modes with directional slide-and-fade animations.
-- **Dynamic Preloader Animation**: Multi-platform logo gathering (YouTube, Instagram, Pinterest, Facebook) with fluid color mixing and animated **VYDRIVO** letter formation.
-- **Continuous Floating Levitation**: Smooth floating animation for the big background watermark and verified counter badge.
-- **Universal YouTube Support**: Works seamlessly with regular YouTube videos (`youtube.com/watch?v=...`) and vertical Shorts (`youtube.com/shorts/...`).
-- **Instagram Reel & Image Support**: Download Instagram Reels in HD MP4, save high-resolution cover photos/images (`.jpg`), or extract background audio (`.mp3`).
-- **Facebook Video & Image Support**: Download Facebook Watch videos, Reels, and public posts in HD/SD MP4, extract MP3 audio, and save high-res images.
-- **Pinterest Pin & Video Support**: Download Pinterest aesthetic wallpapers/photos, Idea Pins, and videos in full original resolution (`pin.it` and `pinterest.com`).
-- **Lossless Stream Merging via FFmpeg**: High-resolution video tracks (1080p, 720p) are merged with audio streams losslessly into standard MP4.
-- **High-Bitrate MP3 Extraction**: Extract audio directly to MP3 (up to 320 kbps).
-- **Accurate Real-Time Progress**: Powered by Server-Sent Events (SSE) and robust fallback polling reporting real download percentage, speed, and ETA.
-- **Zero Fabrication**: Only genuine backend progress and verified streams are shown.
-- **Self-Cleaning Storage**: Background worker periodically deletes temporary files older than 30 minutes to manage disk space.
+| Platform | Supported Formats | Video Quality | Audio Quality | Image / Photo Extraction |
+| :--- | :--- | :--- | :--- | :--- |
+| **YouTube** | Standard Videos, Shorts, Clips | 1080p, 720p, 480p, 360p (MP4) | 320 kbps, 192 kbps, 128 kbps (MP3) | High-Res Thumbnail |
+| **Instagram** | Reels, Video Posts, Carousels | 1080p, 720p (MP4) | Original Audio (MP3) | Full-Res Cover & Post Photos (JPG) |
+| **Facebook** | Facebook Watch, Public Videos, Reels | HD & SD Streams (MP4) | High-Bitrate MP3 | Full-Res Cover Images (JPG) |
+| **Pinterest** | Pins, Idea Videos, Wallpapers, Posters | Original MP4 Video | Extracted MP3 Audio | Original Full-Resolution Graphics (JPG) |
 
 ---
 
-## 🛠️ Tech Stack
+## ⚡ Key Highlights
+
+- **Multi-Platform Tab Navigation**:
+  - Seamlessly switch between **YouTube**, **Instagram**, **Facebook**, and **Pinterest**.
+  - **Sticky Elastic Switch Animation**: Active pill highlights dynamically stretch like a rubber band (`scaleX` spring physics) across tabs before snapping into place with an elastic bounce.
+- **Dynamic Animated Preloader**:
+  - Multi-platform logo gathering (YouTube red, Instagram gradient, Facebook blue, Pinterest scarlet) with fluid color mixing and animated **VYDRIVO** typography.
+- **Smart Scraper Fallbacks**:
+  - Handles photo-only pins on Pinterest without crashing by resolving preload links directly to untouched `/originals/` resolution.
+  - Automatic fallback handles Instagram posts, reels, and cover photos cleanly.
+- **Lossless FFmpeg Audio-Video Remuxing**:
+  - Combines separate high-bitrate video streams and audio tracks into standard, globally compatible MP4 files without quality loss.
+- **Real-Time Live Progress (SSE)**:
+  - Powered by **Server-Sent Events** (`sse-starlette`) providing live download speed (MB/s), estimated time remaining (ETA), and genuine download percentage.
+- **Zero Fabrication**:
+  - 100% honest backend progress feedback with no fake timers or artificial delays.
+- **Automatic Self-Cleaning Disk Storage**:
+  - A background garbage-collection worker periodically purges downloaded and converted files older than 30 minutes to conserve disk space.
+- **RFC 5987 Unicode Filename Support**:
+  - Correctly encodes download headers to support international characters, Hindi/Devanagari scripts, special symbols, and emojis in media titles.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    Client["Next.js 16 Client (React 19, Tailwind CSS)"]
+    API["FastAPI Backend (Uvicorn ASGI)"]
+    InspectRoute["/api/v1/inspect (URL Analyzer)"]
+    JobManager["Job Manager & Task Queue"]
+    YtDlp["yt-dlp Core Engine"]
+    CustomScraper["Custom Image & Fallback Scrapers"]
+    FFmpeg["FFmpeg Remuxer & Transcoder"]
+    SSE["/api/v1/jobs/{id}/events (SSE Live Stream)"]
+    DownloadRoute["/api/v1/jobs/{id}/download (File Delivery)"]
+
+    Client -->|1. Inspect URL| API
+    API --> InspectRoute
+    InspectRoute --> YtDlp
+    InspectRoute -->|Fallback for Image Pins| CustomScraper
+    InspectRoute -->|Return Media Options| Client
+
+    Client -->|2. Create Download Job| JobManager
+    JobManager --> YtDlp
+    JobManager --> FFmpeg
+    JobManager -->|3. Stream Real Progress| SSE
+    SSE -->|Live Speed & ETA Updates| Client
+
+    Client -->|4. Trigger Direct Download| DownloadRoute
+    DownloadRoute -->|Unicode-Safe File Stream| Client
+```
+
+---
+
+## 🛠️ Tech Stack & Libraries
 
 ### Frontend
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, React 19)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Framework**: [Next.js 16.4](https://nextjs.org/) (App Router, React 19)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Typography**: [Outfit](https://fonts.google.com/specimen/Outfit) via Google Fonts
 - **Icons**: [Lucide React](https://lucide.dev/)
+- **Transitions**: Native CSS cubic-bezier springs & sticky slide-scale keyframes
 - **Language**: TypeScript
 
 ### Backend
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
 - **Extraction Engine**: [yt-dlp](https://github.com/yt-dlp/yt-dlp)
-- **Media Transcoder**: [FFmpeg 9.0+](https://ffmpeg.org/)
-- **Live Updates**: Server-Sent Events ([sse-starlette](https://github.com/sysid/sse-starlette))
-- **ASGI Server**: [Uvicorn](https://www.uvicorn.org/)
+- **Multimedia Processing**: [FFmpeg](https://ffmpeg.org/) (via `imageio-ffmpeg` and system binaries)
+- **Real-Time Streaming**: [sse-starlette](https://github.com/sysid/sse-starlette)
+- **Server**: [Uvicorn](https://www.uvicorn.org/)
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Installation & Local Development
 
-### 1. Prerequisites
-- **Node.js** (v18+)
-- **Python** (v3.10+)
-- **FFmpeg** installed and accessible in your system `PATH` (e.g., via `winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` on macOS, or `apt install ffmpeg` on Linux).
+### Prerequisites
+1. **Node.js** (v18.0 or newer)
+2. **Python** (v3.10 or newer)
+3. **FFmpeg** installed on your system (e.g. `winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` on macOS, or `sudo apt install ffmpeg` on Ubuntu/Debian).
 
 ---
 
-### 2. Backend Setup
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/FaizanGouri/vydrivo.git
+cd vydrivo
+```
+
+---
+
+### Step 2: Start the Backend API
 
 ```bash
 # Navigate to backend directory
 cd backend
 
-# Create and activate Python virtual environment
+# Create a virtual environment
 python -m venv venv
 
-# On Windows:
-.\venv\Scripts\activate
-# On Linux/macOS:
+# Activate the virtual environment
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# Windows (CMD):
+.\venv\Scripts\activate.bat
+# Linux / macOS:
 source venv/bin/activate
 
-# Install backend dependencies
+# Install required Python packages
 pip install -r requirements.txt
 
 # Start the FastAPI server
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
-The backend API will be live at `http://127.0.0.1:8000`.
+
+The backend server will run at:
+👉 **`http://127.0.0.1:8000`** (Interactive OpenAPI Docs available at `http://127.0.0.1:8000/docs`)
 
 ---
 
-### 3. Frontend Setup
+### Step 3: Start the Next.js Frontend
+
+Open a second terminal window:
 
 ```bash
-# In a new terminal, navigate to frontend directory
+# Navigate to frontend directory
 cd frontend
 
-# Install npm dependencies
+# Install dependencies
 npm install
 
-# Start Next.js development server
+# Start the Next.js development server
 npm run dev
 ```
 
@@ -93,28 +172,112 @@ Open your browser and navigate to:
 
 ---
 
-## 📡 API Endpoints Overview
+## 📡 REST API Reference
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/health` | Service health status |
-| `POST` | `/api/v1/inspect` | Inspect YouTube/Shorts URL, returns title, thumbnail, duration, view count, and available stream qualities |
-| `POST` | `/api/v1/jobs` | Initializes a media download/conversion job |
-| `GET` | `/api/v1/jobs/{job_id}` | Fetch current job status and progress |
-| `GET` | `/api/v1/jobs/{job_id}/events` | Real-time Server-Sent Events (SSE) progress stream |
-| `GET` | `/api/v1/jobs/{job_id}/download` | Secure file delivery with RFC 5987 Unicode filename headers |
+### 1. Inspect Media URL
+**`POST /api/v1/inspect`**
+
+Analyzes the provided URL and extracts metadata, thumbnails, duration, and available download options.
+
+```json
+// Request Body
+{
+  "url": "https://www.youtube.com/watch?v=..."
+}
+
+// Success Response (200 OK)
+{
+  "success": true,
+  "data": {
+    "id": "dQw4w9WgXcQ",
+    "url": "https://www.youtube.com/watch?v=...",
+    "title": "Sample Media Title",
+    "thumbnail": "https://...",
+    "duration_formatted": "03:32",
+    "uploader": "Channel or Creator Name",
+    "view_count": 1450000,
+    "platform": "youtube",
+    "is_short": false,
+    "options": [
+      {
+        "quality": "1080p",
+        "format": "mp4",
+        "label": "1080p (Full HD Video)",
+        "type": "video"
+      },
+      {
+        "quality": "720p",
+        "format": "mp4",
+        "label": "720p (HD Video)",
+        "type": "video"
+      },
+      {
+        "quality": "320kbps",
+        "format": "mp3",
+        "label": "Audio Only (320kbps MP3)",
+        "type": "audio"
+      }
+    ]
+  }
+}
+```
 
 ---
 
-## 🔒 Security & Privacy
+### 2. Create Download Job
+**`POST /api/v1/jobs`**
 
-- **No Personal Information Stored**: Downloads directory is ignored by Git; no user credentials or logs are tracked.
-- **SSRF & Network Hardening**: Strict YouTube URL regex verification prevents internal network probing.
-- **RFC 5987 Compliant Filename Encoding**: Protects download headers against emoji and international Unicode character encoding crashes.
-- **Automatic TTL Deletion**: Temporary converted files expire and are purged automatically.
+Queues a new background processing job.
+
+```json
+// Request Body
+{
+  "url": "https://www.instagram.com/reel/...",
+  "format": "video",       // "video" | "audio" | "image"
+  "quality": "1080p"       // "1080p", "720p", "320kbps", "Original"
+}
+
+// Response
+{
+  "success": true,
+  "job_id": "8bfa2e12-3a1b-4d98-8ce2-47ef8d91a01c",
+  "status": "processing"
+}
+```
+
+---
+
+### 3. Stream Job Progress (SSE)
+**`GET /api/v1/jobs/{job_id}/events`**
+
+Streams real-time Server-Sent Events with progress updates:
+
+```text
+data: {"job_id":"...","status":"processing","progress":42.5,"speed":"12.4MiB/s","eta":"00:04"}
+
+data: {"job_id":"...","status":"processing","progress":88.0,"speed":"Merging video and audio...","eta":""}
+
+data: {"job_id":"...","status":"completed","progress":100.0,"speed":"","eta":"","filename":"video.mp4","file_size":24560124}
+```
+
+---
+
+### 4. Download Converted Media
+**`GET /api/v1/jobs/{job_id}/download`**
+
+Serves the finalized file with `Content-Disposition: attachment; filename*=UTF-8''...` headers.
+
+---
+
+## 🔒 Security & Best Practices
+
+- **Strict URL Validation**: Validates regex patterns for YouTube, Instagram, Facebook, and Pinterest to prevent SSRF and internal network probing.
+- **Temporary File Lifecycle**: Downloaded files are saved to an isolated `downloads/` directory and purged automatically after 30 minutes.
+- **Sanitized Filenames**: Media titles are stripped of illegal filesystem characters and safe-encoded according to RFC 5987.
+- **No Secret Storage**: Does not log or store cookies, personal authentication tokens, or user data.
 
 ---
 
 ## 📄 License
 
-This project is open-source and intended for personal educational media management.
+This project is licensed under the [MIT License](LICENSE) and is intended for personal and educational media backup purposes.
