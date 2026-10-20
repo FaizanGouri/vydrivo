@@ -53,10 +53,67 @@ def is_valid_supported_url(url: str) -> bool:
         or is_valid_pinterest_url(url)
     )
 
+def extract_pinterest_pin_data(url: str) -> Optional[Dict[str, Any]]:
+    """
+    Fallback scraper for Pinterest image pins when yt-dlp finds no video formats.
+    """
+    import requests
+    import html as py_html
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+    try:
+        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=12)
+        page_text = resp.text
+        final_url = resp.url
+
+        preload_m = re.search(r'id=["\']pin-image-preload["\'][^>]+href=["\']([^"\']+)["\']', page_text)
+        if not preload_m:
+            preload_m = re.search(r'href=["\']([^"\']+)["\'][^>]+id=["\']pin-image-preload["\']', page_text)
+
+        img_candidate = preload_m.group(1) if preload_m else None
+        if not img_candidate:
+            matches = re.findall(r'https://i\.pinimg\.com/(?:originals|736x|564x|474x)/[a-zA-Z0-9/_\-]+\.(?:jpg|jpeg|png|webp)', page_text)
+            if matches:
+                img_candidate = matches[0]
+
+        orig_img = None
+        if img_candidate:
+            orig_candidate = re.sub(r'/\d+x(?:[0-9]*)/', '/originals/', img_candidate)
+            orig_candidate = re.sub(r'/\d+x/', '/originals/', orig_candidate)
+            try:
+                head_resp = requests.head(orig_candidate, headers=headers, timeout=5)
+                if head_resp.status_code == 200:
+                    orig_img = orig_candidate
+                else:
+                    orig_img = img_candidate
+            except Exception:
+                orig_img = orig_candidate
+
+        title_m = re.search(r'<title>(.*?)</title>', page_text, re.DOTALL)
+        raw_title = title_m.group(1).strip() if title_m else "Pinterest Pin"
+        clean_title = re.sub(r'\s*\|\s*Pinterest.*$', '', raw_title, flags=re.IGNORECASE)
+        clean_title = py_html.unescape(clean_title).strip() or "Pinterest Pin"
+
+        pin_id_m = re.search(r'/pin/(\d+)', final_url)
+        pin_id = pin_id_m.group(1) if pin_id_m else "pinterest_pin"
+
+        return {
+            "id": pin_id,
+            "title": clean_title,
+            "image": orig_img or img_candidate,
+            "url": final_url,
+            "uploader": "Pinterest Creator"
+        }
+    except Exception:
+        return None
+
 def extract_video_info(url: str) -> Dict[str, Any]:
     """
     Extracts metadata, thumbnails, duration, and available quality formats
-    using yt-dlp for YouTube and Instagram reels/posts without downloading media.
+    using yt-dlp for YouTube, Instagram, Facebook, and Pinterest without downloading media.
     """
     ydl_opts = {
         'skip_download': True,
@@ -69,8 +126,37 @@ def extract_video_info(url: str) -> Dict[str, Any]:
     is_fb = is_valid_facebook_url(url)
     is_pin = is_valid_pinterest_url(url)
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        # If it's a Pinterest link and yt-dlp reports No video formats found
+        if is_pin or "No video formats found" in str(e):
+            pin_data = extract_pinterest_pin_data(url)
+            if pin_data and pin_data.get("image"):
+                return {
+                    "id": pin_data.get("id") or "pinterest_pin",
+                    "url": pin_data.get("url") or url,
+                    "title": pin_data.get("title") or "Pinterest Pin",
+                    "thumbnail": pin_data.get("image"),
+                    "duration": None,
+                    "duration_formatted": None,
+                    "uploader": pin_data.get("uploader") or "Pinterest Creator",
+                    "view_count": None,
+                    "platform": "pinterest",
+                    "is_short": False,
+                    "options": [
+                        {
+                            "quality": "Original",
+                            "format": "jpg",
+                            "label": "Download Full-Res Pin Image (JPG)",
+                            "type": "image",
+                            "url": pin_data.get("image")
+                        }
+                    ]
+                }
+        raise e
         
         # Determine title, thumbnail, duration, author
         if is_insta:
