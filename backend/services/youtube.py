@@ -304,7 +304,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
         'remote_components': {'ejs:github'},
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'visionos', 'web']
+                'player_client': ['web_embedded']
             }
         }
     }
@@ -459,7 +459,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
 
         for h in standard_heights:
             has_resolution = any(
-                f.get('height') == h and f.get('vcodec') != 'none'
+                (min(f.get('width') or 0, f.get('height') or 0) == h if ((f.get('width') or 0) > 0 and (f.get('height') or 0) > 0) else f.get('height') == h) and f.get('vcodec') != 'none'
                 for f in formats_list
             )
             if has_resolution:

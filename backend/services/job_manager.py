@@ -294,7 +294,7 @@ class JobManager:
                 'remote_components': {'ejs:github'},
                 'extractor_args': {
                     'youtube': {
-                        'player_client': ['android', 'visionos', 'web']
+                        'player_client': ['web_embedded']
                     }
                 }
             }
@@ -337,14 +337,15 @@ class JobManager:
                         })
                 elif height.isdigit():
                     h = int(height)
+                    format_spec = f'bestvideo[height<={h}]+bestaudio/bestvideo[width<={h}]+bestaudio/best[height<={h}]/best[width<={h}]/best'
                     if ffmpeg_path:
                         ydl_opts.update({
-                            'format': f'bestvideo[height<={h}]+bestaudio/best[height<={h}]/best',
+                            'format': format_spec,
                             'merge_output_format': 'mp4',
                         })
                     else:
                         ydl_opts.update({
-                            'format': f'best[height<={h}]/best',
+                            'format': f'best[height<={h}]/best[width<={h}]/best',
                         })
                 else:
                     if ffmpeg_path:

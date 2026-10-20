@@ -110,7 +110,7 @@ class TestJobManager(unittest.TestCase):
 
             call_args = mock_ydl_class.call_args[0][0]
             self.assertIn("extractor_args", call_args)
-            self.assertEqual(call_args["extractor_args"]["youtube"]["player_client"], ['android', 'visionos', 'web'])
+            self.assertEqual(call_args["extractor_args"]["youtube"]["player_client"], ['web_embedded'])
             self.assertEqual(call_args.get("remote_components"), {'ejs:github'})
             self.assertFalse(call_args.get("no_warnings", True))
             self.assertIsNotNone(call_args.get("logger"))
