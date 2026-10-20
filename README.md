@@ -1,7 +1,7 @@
-# VYDRIVO – Modern YouTube, Instagram & Facebook Media Downloader
+# VYDRIVO – Modern All-in-One Media Downloader (YouTube, Instagram, Facebook & Pinterest)
 
 <p align="center">
-  <b>A sleek, high-performance web application to inspect and download YouTube videos & Shorts, Instagram Reels & Posts, and Facebook Videos, Reels & Posts in high quality (MP4 video, cover JPG images) or extract crystal-clear MP3 audio with real-time SSE progress streaming.</b>
+  <b>A sleek, high-performance web application to inspect and download YouTube videos & Shorts, Instagram Reels & Posts, Facebook Videos, and Pinterest Pins & Idea Videos in high quality (MP4 video, full-resolution JPG images) or extract crystal-clear MP3 audio with real-time SSE progress streaming.</b>
 </p>
 
 ---
@@ -9,12 +9,13 @@
 ## 🌟 Highlights & Features
 
 - **Full-Screen Forest Green Aesthetic**: Clean, responsive, and immersive edge-to-edge design.
-- **Navbar Multi-Platform Switcher**: Easily switch between **YouTube**, **Instagram Reel / Image**, and **Facebook Video / Image** modes with smooth slide-and-fade animations.
+- **Navbar Multi-Platform Switcher**: Easily switch between **YouTube**, **Instagram**, **Facebook**, and **Pinterest** modes with directional slide-and-fade animations.
 - **Dynamic Preloader Animation**: Multi-platform logo gathering (YouTube, Instagram, Pinterest, Facebook) with fluid color mixing and animated **VYDRIVO** letter formation.
 - **Continuous Floating Levitation**: Smooth floating animation for the big background watermark and verified counter badge.
 - **Universal YouTube Support**: Works seamlessly with regular YouTube videos (`youtube.com/watch?v=...`) and vertical Shorts (`youtube.com/shorts/...`).
 - **Instagram Reel & Image Support**: Download Instagram Reels in HD MP4, save high-resolution cover photos/images (`.jpg`), or extract background audio (`.mp3`).
 - **Facebook Video & Image Support**: Download Facebook Watch videos, Reels, and public posts in HD/SD MP4, extract MP3 audio, and save high-res images.
+- **Pinterest Pin & Video Support**: Download Pinterest aesthetic wallpapers/photos, Idea Pins, and videos in full original resolution (`pin.it` and `pinterest.com`).
 - **Lossless Stream Merging via FFmpeg**: High-resolution video tracks (1080p, 720p) are merged with audio streams losslessly into standard MP4.
 - **High-Bitrate MP3 Extraction**: Extract audio directly to MP3 (up to 320 kbps).
 - **Accurate Real-Time Progress**: Powered by Server-Sent Events (SSE) and robust fallback polling reporting real download percentage, speed, and ETA.

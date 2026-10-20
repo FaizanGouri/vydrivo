@@ -26,7 +26,7 @@ def health_check():
 def inspect_video(req: InspectRequest):
     url = req.url.strip()
     if not is_valid_supported_url(url):
-        raise HTTPException(status_code=400, detail="Invalid URL. Please provide a valid YouTube, Instagram, or Facebook link.")
+        raise HTTPException(status_code=400, detail="Invalid URL. Please provide a valid YouTube, Instagram, Facebook, or Pinterest link.")
 
     try:
         info = extract_video_info(url)
@@ -38,7 +38,7 @@ def inspect_video(req: InspectRequest):
 def create_job(req: CreateJobRequest):
     url = req.url.strip()
     if not is_valid_supported_url(url):
-        raise HTTPException(status_code=400, detail="Invalid YouTube, Instagram, or Facebook link.")
+        raise HTTPException(status_code=400, detail="Invalid YouTube, Instagram, Facebook, or Pinterest link.")
 
     job = job_manager.create_job(url=url, format_type=req.format, quality=req.quality)
     return {"success": True, "job_id": job.job_id, "status": job.status}

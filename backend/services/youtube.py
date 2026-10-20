@@ -19,6 +19,12 @@ FACEBOOK_REGEX = re.compile(
     re.IGNORECASE
 )
 
+# Pinterest URL regex matching pins, idea pins, pin.it short links
+PINTEREST_REGEX = re.compile(
+    r'^(https?://)?([a-zA-Z0-9_\-]+\.)?(pinterest\.(com|[a-z]{2,3}(\.[a-z]{2})?)|pin\.it)/.+$',
+    re.IGNORECASE
+)
+
 def is_valid_youtube_url(url: str) -> bool:
     if not url:
         return False
@@ -34,8 +40,18 @@ def is_valid_facebook_url(url: str) -> bool:
         return False
     return bool(FACEBOOK_REGEX.search(url.strip()))
 
+def is_valid_pinterest_url(url: str) -> bool:
+    if not url:
+        return False
+    return bool(PINTEREST_REGEX.search(url.strip()))
+
 def is_valid_supported_url(url: str) -> bool:
-    return is_valid_youtube_url(url) or is_valid_instagram_url(url) or is_valid_facebook_url(url)
+    return (
+        is_valid_youtube_url(url)
+        or is_valid_instagram_url(url)
+        or is_valid_facebook_url(url)
+        or is_valid_pinterest_url(url)
+    )
 
 def extract_video_info(url: str) -> Dict[str, Any]:
     """
@@ -51,21 +67,27 @@ def extract_video_info(url: str) -> Dict[str, Any]:
 
     is_insta = is_valid_instagram_url(url)
     is_fb = is_valid_facebook_url(url)
+    is_pin = is_valid_pinterest_url(url)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         
         # Determine title, thumbnail, duration, author
-        default_title = (
-            f"Instagram {'Reel' if '/reel' in url else 'Post'}" if is_insta
-            else (f"Facebook {'Reel' if '/reel' in url else 'Video'}" if is_fb else 'Untitled Video')
-        )
+        if is_insta:
+            default_title = f"Instagram {'Reel' if '/reel' in url else 'Post'}"
+        elif is_fb:
+            default_title = f"Facebook {'Reel' if '/reel' in url else 'Video'}"
+        elif is_pin:
+            default_title = "Pinterest Pin"
+        else:
+            default_title = "Untitled Video"
+
         title = info.get('title') or default_title
         thumbnail = info.get('thumbnail')
         duration = info.get('duration') # in seconds
         uploader = (
             info.get('uploader') or info.get('channel') or info.get('uploader_id')
-            or ('Instagram Creator' if is_insta else ('Facebook Creator' if is_fb else 'Unknown Creator'))
+            or ('Instagram Creator' if is_insta else ('Facebook Creator' if is_fb else ('Pinterest Creator' if is_pin else 'Unknown Creator')))
         )
         view_count = info.get('view_count') or info.get('like_count')
         video_id = info.get('id')
@@ -130,6 +152,30 @@ def extract_video_info(url: str) -> Dict[str, Any]:
                     "type": "image",
                     "url": thumbnail
                 })
+        elif is_pin:
+            # Pinterest Pin Video / Image
+            has_video = any(f.get('vcodec') != 'none' for f in formats_list)
+            if has_video:
+                available_options.append({
+                    "quality": "HD",
+                    "format": "mp4",
+                    "label": "High Quality Pin Video (MP4)",
+                    "type": "video"
+                })
+                available_options.append({
+                    "quality": "320kbps",
+                    "format": "mp3",
+                    "label": "Extract Audio (MP3 - 320 kbps)",
+                    "type": "audio"
+                })
+            if thumbnail:
+                available_options.append({
+                    "quality": "Original",
+                    "format": "jpg",
+                    "label": "Download Full-Res Pin Image (JPG)",
+                    "type": "image",
+                    "url": thumbnail
+                })
         else:
             # YouTube standard format heights
             standard_heights = [1080, 720, 480, 360]
@@ -185,7 +231,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
             "duration_formatted": format_duration(duration) if duration else None,
             "uploader": uploader,
             "view_count": view_count,
-            "platform": "instagram" if is_insta else ("facebook" if is_fb else "youtube"),
+            "platform": "instagram" if is_insta else ("facebook" if is_fb else ("pinterest" if is_pin else "youtube")),
             "is_short": ("/shorts/" in url) or ("/reel" in url),
             "options": available_options
         }

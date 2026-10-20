@@ -160,7 +160,10 @@ class JobManager:
                 with yt_dlp.YoutubeDL({'skip_download': True, 'quiet': True}) as ydl:
                     info = ydl.extract_info(job.url, download=False)
                     img_url = info.get('thumbnail')
-                    raw_title = info.get('title') or ("facebook_image" if any(d in job.url for d in ['facebook.com', 'fb.watch', 'fb.com']) else "instagram_image")
+                    is_pin = any(d in job.url for d in ['pinterest.', 'pin.it'])
+                    is_fb = any(d in job.url for d in ['facebook.com', 'fb.watch', 'fb.com'])
+                    img_prefix = "pinterest_image" if is_pin else ("facebook_image" if is_fb else "instagram_image")
+                    raw_title = info.get('title') or img_prefix
                     clean_title = "".join(c for c in raw_title if c.isalnum() or c in (' ', '_', '-')).strip()[:60]
                     clean_title = clean_title.replace(' ', '_') or "instagram_image"
                     out_filename = f"{job.job_id}_{clean_title}.jpg"
@@ -196,10 +199,11 @@ class JobManager:
                 # Video format
                 is_insta = 'instagram.com' in job.url
                 is_fb = any(d in job.url for d in ['facebook.com', 'fb.watch', 'fb.com'])
+                is_pin = any(d in job.url for d in ['pinterest.', 'pin.it'])
                 height = job.quality.replace('p', '')
 
-                if is_insta:
-                    # For Instagram, prioritize single pre-muxed MP4 stream with audio,
+                if is_insta or is_pin:
+                    # For Instagram & Pinterest, prioritize single pre-muxed MP4 stream with audio,
                     # and fallback to separate streams merged with FFmpeg
                     ydl_opts.update({
                         'format': 'best[ext=mp4]/best/bestvideo+bestaudio',

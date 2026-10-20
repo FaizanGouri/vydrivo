@@ -34,7 +34,7 @@ interface VideoData {
   duration_formatted?: string;
   uploader?: string;
   view_count?: number;
-  platform?: "youtube" | "instagram" | "facebook";
+  platform?: "youtube" | "instagram" | "facebook" | "pinterest";
   is_short: boolean;
   options: MediaOption[];
 }
@@ -52,13 +52,21 @@ interface JobStatus {
 
 const BACKEND_URL = "http://127.0.0.1:8000/api/v1";
 
-const TAB_ORDER = ["youtube", "instagram", "facebook"] as const;
+const TAB_ORDER = ["youtube", "instagram", "facebook", "pinterest"] as const;
 type PlatformTab = typeof TAB_ORDER[number];
 
 function FacebookIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  );
+}
+
+function PinterestIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z" />
     </svg>
   );
 }
@@ -161,7 +169,9 @@ export default function Home() {
           ? "Please paste a valid YouTube video or Shorts link."
           : activeTab === "instagram"
           ? "Please paste a valid Instagram Reel or Post link."
-          : "Please paste a valid Facebook Video, Reel, or Post link."
+          : activeTab === "facebook"
+          ? "Please paste a valid Facebook Video, Reel, or Post link."
+          : "Please paste a valid Pinterest Pin or Video link."
       );
       setMsg(null);
       return;
@@ -174,7 +184,9 @@ export default function Home() {
         ? "Link looks good. Fetching video details…"
         : activeTab === "instagram"
         ? "Link looks good. Fetching Instagram media details…"
-        : "Link looks good. Fetching Facebook media details…"
+        : activeTab === "facebook"
+        ? "Link looks good. Fetching Facebook media details…"
+        : "Link looks good. Fetching Pinterest media details…"
     );
     setVideoData(null);
     setJobStatus(null);
@@ -442,6 +454,19 @@ export default function Home() {
             <FacebookIcon className="w-3.5 h-3.5" />
             Facebook Video / Image
           </button>
+
+          <button 
+            type="button"
+            onClick={() => switchTab("pinterest")}
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "pinterest"
+                ? "bg-[#e60023] text-white shadow-md font-bold scale-[1.02]"
+                : "text-white hover:bg-white/20 scale-100"
+            }`}
+          >
+            <PinterestIcon className="w-3.5 h-3.5" />
+            Pinterest Pin / Video
+          </button>
         </div>
       </nav>
 
@@ -465,14 +490,18 @@ export default function Home() {
                   ? "+10 lakh"
                   : activeTab === "instagram"
                   ? "+5 lakh"
-                  : "+8 lakh"}
+                  : activeTab === "facebook"
+                  ? "+8 lakh"
+                  : "+6 lakh"}
               </b>
               <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">
                 {activeTab === "youtube"
                   ? "VIDEOS SAVED"
                   : activeTab === "instagram"
                   ? "REELS & POSTS SAVED"
-                  : "CLIPS & POSTS SAVED"}
+                  : activeTab === "facebook"
+                  ? "CLIPS & POSTS SAVED"
+                  : "PINS & PHOTOS SAVED"}
               </small>
             </div>
           </div>
@@ -482,7 +511,9 @@ export default function Home() {
               ? "Save any video you love"
               : activeTab === "instagram"
               ? "Save any Instagram Reel or Image"
-              : "Save any Facebook Video or Post"}
+              : activeTab === "facebook"
+              ? "Save any Facebook Video or Post"
+              : "Save any Pinterest Pin or Video"}
           </h1>
 
           <p className="mt-3 italic font-light text-[22px] text-white/85">
@@ -490,7 +521,9 @@ export default function Home() {
               ? "paste the link, pick a format, done"
               : activeTab === "instagram"
               ? "paste the reel or post link, download instantly"
-              : "paste the facebook link, download in HD instantly"}
+              : activeTab === "facebook"
+              ? "paste the facebook link, download in HD instantly"
+              : "paste the pin link, download in full resolution"}
           </p>
 
           <p className="mt-4 max-w-[50ch] text-[15px] sm:text-[16px] leading-relaxed text-white/90">
@@ -498,7 +531,9 @@ export default function Home() {
               ? "Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop."
               : activeTab === "instagram"
               ? "Download Instagram Reels in HD MP4, save high-resolution cover photos/images, or extract audio directly."
-              : "Download Facebook Watch, Reels, and public post videos in HD MP4, save high-res images, or extract MP3 audio."}
+              : activeTab === "facebook"
+              ? "Download Facebook Watch, Reels, and public post videos in HD MP4, save high-res images, or extract MP3 audio."
+              : "Download Pinterest videos, Idea Pins, and aesthetic high-resolution photos/wallpapers in original quality."}
           </p>
 
           {/* Input Box Form */}
@@ -512,7 +547,9 @@ export default function Home() {
                   ? "Paste YouTube video or Shorts link here"
                   : activeTab === "instagram"
                   ? "Paste Instagram Reel or Post URL here (e.g. instagram.com/reel/...)"
-                  : "Paste Facebook Video, Reel, or Post URL here (e.g. fb.watch/... or facebook.com/...)"
+                  : activeTab === "facebook"
+                  ? "Paste Facebook Video, Reel, or Post URL here (e.g. fb.watch/... or facebook.com/...)"
+                  : "Paste Pinterest Pin or Video URL here (e.g. pin.it/... or pinterest.com/pin/...)"
               }
               className="flex-1 min-w-0 border-0 bg-transparent px-5 py-2.5 font-medium text-[15px] sm:text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
             />
@@ -524,6 +561,8 @@ export default function Home() {
                   ? "bg-gradient-to-r from-[#df4996] to-[#4f5bd5] hover:opacity-95"
                   : activeTab === "facebook"
                   ? "bg-[#1877f2] hover:bg-[#166fe5]"
+                  : activeTab === "pinterest"
+                  ? "bg-[#e60023] hover:bg-[#ad081b]"
                   : "bg-[#1f2a24] hover:bg-[#0f1612]"
               }`}
             >
