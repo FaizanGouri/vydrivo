@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from services.security import validate_url, SecurityValidationError, sanitize_filename
-from services.youtube import is_valid_supported_url, extract_video_info
+from services.youtube import is_valid_supported_url, extract_video_info, SanitizedYTDLPLogger
 from services.job_manager import job_manager, QueueFullError, DOWNLOADS_DIR
 from services.rate_limiter import inspect_limiter, job_limiter
 
@@ -73,7 +73,16 @@ def inspect_video(req: InspectRequest, request: Request):
             raise Exception("No media metadata was returned by the extractor.")
         return {"success": True, "data": info}
     except Exception as e:
-        logger.error("Inspection error for URL '%s' from IP %s: %s", validated_url, client_ip, e, exc_info=True)
+        err_msg = str(e)
+        sanitized_diag = SanitizedYTDLPLogger.sanitize_message(err_msg)
+        logger.error("Inspection error from IP %s: %s", client_ip, sanitized_diag)
+
+        if "429" in err_msg or "Too Many Requests" in err_msg:
+            raise HTTPException(
+                status_code=429,
+                detail="The media provider is currently rate-limiting requests. Please try again in a few minutes."
+            )
+
         # Sanitized error message without leaking internal tracebacks
         raise HTTPException(
             status_code=500,

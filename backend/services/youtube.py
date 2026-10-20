@@ -1,8 +1,10 @@
 import re
+import os
+import sys
+import shutil
 import logging
 from typing import Dict, Any, List, Optional
 import yt_dlp
-import os
 from services.security import validate_url, safe_http_fetch, SecurityValidationError
 
 logger = logging.getLogger("vydrivo.youtube")
@@ -238,6 +240,25 @@ def extract_pinterest_pin_data(url: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
+def get_js_runtime_config() -> Dict[str, Any]:
+    """
+    Detects available Deno binary from virtualenv Scripts/bin or system PATH
+    and returns yt-dlp js_runtimes configuration.
+    """
+    venv_dir = os.path.dirname(sys.executable)
+    deno_exe = "deno.exe" if sys.platform == "win32" else "deno"
+    venv_deno = os.path.join(venv_dir, deno_exe)
+
+    deno_path = None
+    if os.path.exists(venv_deno):
+        deno_path = venv_deno
+    else:
+        deno_path = shutil.which("deno")
+
+    if deno_path:
+        return {'deno': {'path': deno_path}}
+    return {'deno': {}}
+
 def extract_video_info(url: str) -> Dict[str, Any]:
     """
     Extracts metadata, thumbnails, duration, and available quality formats
@@ -260,6 +281,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
         'no_warnings': False,
         'logger': SanitizedYTDLPLogger(),
         'extract_flat': False,
+        'js_runtimes': get_js_runtime_config(),
     }
 
     is_insta = is_valid_instagram_url(url)

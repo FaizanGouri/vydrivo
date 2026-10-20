@@ -113,6 +113,20 @@ class TestJobManager(unittest.TestCase):
             self.assertNotIn("extractor_args", call_args)
             self.assertFalse(call_args.get("no_warnings", True))
             self.assertIsNotNone(call_args.get("logger"))
+            self.assertIn("js_runtimes", call_args)
+            self.assertIn("deno", call_args["js_runtimes"])
+
+    def test_job_failure_maps_429_to_rate_limit_error(self):
+        manager = JobManager()
+        job = Job("test-429-job", "https://www.youtube.com/watch?v=123", "video", "1080p")
+        with patch("yt_dlp.YoutubeDL") as mock_ydl_class:
+            mock_ydl = mock_ydl_class.return_value.__enter__.return_value
+            mock_ydl.extract_info.side_effect = Exception("HTTP Error 429: Too Many Requests for URL https://googlevideo.com/...")
+            manager._run_job_wrapper(job)
+
+            self.assertEqual(job.status, "failed")
+            self.assertIn("rate-limiting", job.error)
+            self.assertNotIn("googlevideo.com", job.error)
 
 if __name__ == "__main__":
     unittest.main()

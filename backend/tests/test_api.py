@@ -64,5 +64,37 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("Access-Control-Allow-Origin", resp.headers)
         self.assertEqual(resp.headers["Access-Control-Allow-Origin"], "http://localhost:3000")
 
+    def test_inspect_handles_429_rate_limiting(self):
+        from routes.api import inspect_video, InspectRequest
+        from unittest.mock import patch, MagicMock
+        from fastapi import HTTPException
+
+        mock_req = MagicMock()
+        mock_req.headers.get.return_value = "192.168.1.100"
+        mock_req.client.host = "192.168.1.100"
+
+        with patch("routes.api.extract_video_info", side_effect=Exception("HTTP Error 429: Too Many Requests for URL")):
+            with self.assertRaises(HTTPException) as ctx:
+                inspect_video(InspectRequest(url="https://www.youtube.com/watch?v=0ZX0jCAvfPY"), mock_req)
+            self.assertEqual(ctx.exception.status_code, 429)
+            self.assertIn("rate-limiting", ctx.exception.detail)
+            # Ensure no internal URLs or tokens leak in response detail
+            self.assertNotIn("http", ctx.exception.detail.lower())
+
+    def test_inspect_handles_403_and_unresolved_player(self):
+        from routes.api import inspect_video, InspectRequest
+        from unittest.mock import patch, MagicMock
+        from fastapi import HTTPException
+
+        mock_req = MagicMock()
+        mock_req.headers.get.return_value = "192.168.1.101"
+        mock_req.client.host = "192.168.1.101"
+
+        with patch("routes.api.extract_video_info", side_effect=Exception("HTTP Error 403: Forbidden for URL")):
+            with self.assertRaises(HTTPException) as ctx:
+                inspect_video(InspectRequest(url="https://www.youtube.com/watch?v=0ZX0jCAvfPY"), mock_req)
+            self.assertEqual(ctx.exception.status_code, 500)
+            self.assertIn("private, age-restricted, or temporarily unavailable", ctx.exception.detail)
+
 if __name__ == "__main__":
     unittest.main()

@@ -100,6 +100,16 @@ class TestExtraction(unittest.TestCase):
         self.assertNotIn("extractor_args", call_args)
         self.assertFalse(call_args.get("no_warnings", True))
         self.assertIsNotNone(call_args.get("logger"))
+        self.assertIn("js_runtimes", call_args)
+        self.assertIn("deno", call_args["js_runtimes"])
+
+    def test_js_runtime_configuration(self):
+        import os
+        from services.youtube import get_js_runtime_config
+        cfg = get_js_runtime_config()
+        self.assertIn("deno", cfg)
+        if "path" in cfg["deno"]:
+            self.assertTrue(os.path.exists(cfg["deno"]["path"]))
 
     def test_sanitized_logger_redacts_tokens_and_keys(self):
         from services.youtube import SanitizedYTDLPLogger

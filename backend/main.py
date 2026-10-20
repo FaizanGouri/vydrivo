@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import logging
 import yt_dlp
 
@@ -10,16 +11,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger("vydrivo.api")
 
-logger.info(
-    "VYDRIVO Media Engine startup diagnostics | Python: %s | yt-dlp: %s",
-    sys.version.split()[0],
-    yt_dlp.version.__version__
-)
-
-# Ensure venv Scripts directory (where ffmpeg.exe resides) is in PATH
+# Ensure venv Scripts/bin directory (where ffmpeg and deno reside) is in PATH
 scripts_dir = os.path.dirname(sys.executable)
 if scripts_dir not in os.environ.get("PATH", ""):
     os.environ["PATH"] = scripts_dir + os.pathsep + os.environ.get("PATH", "")
+
+has_deno = bool(shutil.which("deno"))
+
+logger.info(
+    "VYDRIVO Media Engine startup diagnostics | Python: %s | yt-dlp: %s | Deno JS runtime: %s",
+    sys.version.split()[0],
+    yt_dlp.version.__version__,
+    "available" if has_deno else "not found"
+)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

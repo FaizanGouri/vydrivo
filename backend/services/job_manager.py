@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 import yt_dlp
 
 from services.security import safe_http_fetch, sanitize_filename
-from services.youtube import SanitizedYTDLPLogger
+from services.youtube import SanitizedYTDLPLogger, get_js_runtime_config
 
 logger = logging.getLogger("vydrivo.jobs")
 
@@ -174,8 +174,13 @@ class JobManager:
         try:
             self._run_job(job)
         except Exception as e:
-            logger.error("Job %s failed with exception: %s", job.job_id, e, exc_info=True)
-            job.set_status("failed", error="Media processing failed. Please check the link or format.")
+            err_msg = str(e)
+            sanitized_diag = SanitizedYTDLPLogger.sanitize_message(err_msg)
+            logger.error("Job %s failed with exception: %s", job.job_id, sanitized_diag)
+            if "429" in err_msg or "Too Many Requests" in err_msg:
+                job.set_status("failed", error="Media provider is temporarily rate-limiting downloads. Please try again in a few minutes.")
+            else:
+                job.set_status("failed", error="Media processing failed. Please check the link or format.")
 
     def _run_job(self, job: Job):
         if job.is_cancelled:
@@ -283,6 +288,7 @@ class JobManager:
                 'no_warnings': False,
                 'logger': SanitizedYTDLPLogger(),
                 'socket_timeout': 15,
+                'js_runtimes': get_js_runtime_config(),
             }
             if ffmpeg_path:
                 ydl_opts['ffmpeg_location'] = ffmpeg_path
@@ -383,7 +389,15 @@ class JobManager:
 
         except Exception as e:
             if not job.is_cancelled:
-                job.set_status("failed", error=str(e))
+                err_msg = str(e)
+                sanitized_diag = SanitizedYTDLPLogger.sanitize_message(err_msg)
+                logger.error("Job %s failed with exception: %s", job.job_id, sanitized_diag)
+                if "FFmpeg is required" in err_msg:
+                    job.set_status("failed", error="FFmpeg is required for MP3 audio conversion, but FFmpeg was not found on the server.")
+                elif "429" in err_msg or "Too Many Requests" in err_msg:
+                    job.set_status("failed", error="Media provider is temporarily rate-limiting downloads. Please try again in a few minutes.")
+                else:
+                    job.set_status("failed", error="Media processing failed. Please check the link or format.")
             # Clean up any partial download files left for this job
             try:
                 for f in os.listdir(DOWNLOADS_DIR):

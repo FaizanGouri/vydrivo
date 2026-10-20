@@ -5,3 +5,4 @@ sse-starlette>=2.1.0
 pydantic>=2.8.0
 requests>=2.32.0
 imageio-ffmpeg>=0.5.1
+deno>=2.0.0
