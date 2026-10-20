@@ -160,7 +160,7 @@ class JobManager:
                 with yt_dlp.YoutubeDL({'skip_download': True, 'quiet': True}) as ydl:
                     info = ydl.extract_info(job.url, download=False)
                     img_url = info.get('thumbnail')
-                    raw_title = info.get('title') or "instagram_image"
+                    raw_title = info.get('title') or ("facebook_image" if any(d in job.url for d in ['facebook.com', 'fb.watch', 'fb.com']) else "instagram_image")
                     clean_title = "".join(c for c in raw_title if c.isalnum() or c in (' ', '_', '-')).strip()[:60]
                     clean_title = clean_title.replace(' ', '_') or "instagram_image"
                     out_filename = f"{job.job_id}_{clean_title}.jpg"
@@ -195,6 +195,7 @@ class JobManager:
             else:
                 # Video format
                 is_insta = 'instagram.com' in job.url
+                is_fb = any(d in job.url for d in ['facebook.com', 'fb.watch', 'fb.com'])
                 height = job.quality.replace('p', '')
 
                 if is_insta:
@@ -204,6 +205,18 @@ class JobManager:
                         'format': 'best[ext=mp4]/best/bestvideo+bestaudio',
                         'merge_output_format': 'mp4',
                     })
+                elif is_fb:
+                    # For Facebook, handle HD vs SD and progressive MP4s
+                    if job.quality == "SD":
+                        ydl_opts.update({
+                            'format': 'sd/best[height<=480]/best',
+                            'merge_output_format': 'mp4',
+                        })
+                    else:
+                        ydl_opts.update({
+                            'format': 'hd/bestvideo+bestaudio/best[ext=mp4]/best',
+                            'merge_output_format': 'mp4',
+                        })
                 elif height.isdigit():
                     h = int(height)
                     if ffmpeg_path:

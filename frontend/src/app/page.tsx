@@ -34,7 +34,7 @@ interface VideoData {
   duration_formatted?: string;
   uploader?: string;
   view_count?: number;
-  platform?: "youtube" | "instagram";
+  platform?: "youtube" | "instagram" | "facebook";
   is_short: boolean;
   options: MediaOption[];
 }
@@ -52,8 +52,19 @@ interface JobStatus {
 
 const BACKEND_URL = "http://127.0.0.1:8000/api/v1";
 
+const TAB_ORDER = ["youtube", "instagram", "facebook"] as const;
+type PlatformTab = typeof TAB_ORDER[number];
+
+function FacebookIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  );
+}
+
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"youtube" | "instagram">("youtube");
+  const [activeTab, setActiveTab] = useState<PlatformTab>("youtube");
   const [tabDirection, setTabDirection] = useState<"left" | "right">("right");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,9 +72,11 @@ export default function Home() {
   const [msg, setMsg] = useState<string | null>(null);
   const [videoData, setVideoData] = useState<VideoData | null>(null);
 
-  const switchTab = (tab: "youtube" | "instagram") => {
+  const switchTab = (tab: PlatformTab) => {
     if (tab === activeTab) return;
-    setTabDirection(tab === "instagram" ? "right" : "left");
+    const oldIdx = TAB_ORDER.indexOf(activeTab);
+    const newIdx = TAB_ORDER.indexOf(tab);
+    setTabDirection(newIdx > oldIdx ? "right" : "left");
     setActiveTab(tab);
     setUrl("");
     setVideoData(null);
@@ -146,7 +159,9 @@ export default function Home() {
       setError(
         activeTab === "youtube"
           ? "Please paste a valid YouTube video or Shorts link."
-          : "Please paste a valid Instagram Reel or Post link."
+          : activeTab === "instagram"
+          ? "Please paste a valid Instagram Reel or Post link."
+          : "Please paste a valid Facebook Video, Reel, or Post link."
       );
       setMsg(null);
       return;
@@ -157,7 +172,9 @@ export default function Home() {
     setMsg(
       activeTab === "youtube"
         ? "Link looks good. Fetching video details…"
-        : "Link looks good. Fetching Instagram media details…"
+        : activeTab === "instagram"
+        ? "Link looks good. Fetching Instagram media details…"
+        : "Link looks good. Fetching Facebook media details…"
     );
     setVideoData(null);
     setJobStatus(null);
@@ -386,11 +403,11 @@ export default function Home() {
           vydrivo<span className="text-[#f2b632]">.</span>
         </a>
 
-        <div className="flex gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner">
+        <div className="flex flex-wrap gap-1.5 p-1.5 rounded-full bg-white/[0.16] border border-white/[0.35] backdrop-blur-md shadow-inner">
           <button 
             type="button"
             onClick={() => switchTab("youtube")}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
               activeTab === "youtube"
                 ? "bg-white text-[#1f2a24] shadow-md scale-[1.02]"
                 : "text-white hover:bg-white/20 scale-100"
@@ -403,7 +420,7 @@ export default function Home() {
           <button 
             type="button"
             onClick={() => switchTab("instagram")}
-            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
               activeTab === "instagram"
                 ? "bg-gradient-to-r from-[#fdc468] via-[#df4996] to-[#4f5bd5] text-white shadow-md font-bold scale-[1.02]"
                 : "text-white hover:bg-white/20 scale-100"
@@ -411,6 +428,19 @@ export default function Home() {
           >
             <Camera className="w-3.5 h-3.5" />
             Instagram Reel / Image
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => switchTab("facebook")}
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-[14px] font-semibold transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "facebook"
+                ? "bg-[#1877f2] text-white shadow-md font-bold scale-[1.02]"
+                : "text-white hover:bg-white/20 scale-100"
+            }`}
+          >
+            <FacebookIcon className="w-3.5 h-3.5" />
+            Facebook Video / Image
           </button>
         </div>
       </nav>
@@ -431,10 +461,18 @@ export default function Home() {
             </i>
             <div className="text-left">
               <b className="block text-[#f2b632] text-[17px] leading-tight font-extrabold">
-                {activeTab === "youtube" ? "+10 lakh" : "+5 lakh"}
+                {activeTab === "youtube"
+                  ? "+10 lakh"
+                  : activeTab === "instagram"
+                  ? "+5 lakh"
+                  : "+8 lakh"}
               </b>
               <small className="text-[10px] tracking-[0.06em] text-white/80 uppercase font-semibold">
-                {activeTab === "youtube" ? "VIDEOS SAVED" : "REELS & POSTS SAVED"}
+                {activeTab === "youtube"
+                  ? "VIDEOS SAVED"
+                  : activeTab === "instagram"
+                  ? "REELS & POSTS SAVED"
+                  : "CLIPS & POSTS SAVED"}
               </small>
             </div>
           </div>
@@ -442,19 +480,25 @@ export default function Home() {
           <h1 className="text-[clamp(36px,5vw,62px)] leading-[1.08] font-bold tracking-[-0.02em] text-white max-w-[20ch]">
             {activeTab === "youtube"
               ? "Save any video you love"
-              : "Save any Instagram Reel or Image"}
+              : activeTab === "instagram"
+              ? "Save any Instagram Reel or Image"
+              : "Save any Facebook Video or Post"}
           </h1>
 
           <p className="mt-3 italic font-light text-[22px] text-white/85">
             {activeTab === "youtube"
               ? "paste the link, pick a format, done"
-              : "paste the reel or post link, download instantly"}
+              : activeTab === "instagram"
+              ? "paste the reel or post link, download instantly"
+              : "paste the facebook link, download in HD instantly"}
           </p>
 
           <p className="mt-4 max-w-[50ch] text-[15px] sm:text-[16px] leading-relaxed text-white/90">
             {activeTab === "youtube"
               ? "Fast, simple and free. Choose MP4 for video or MP3 for audio, in the quality that suits your phone or laptop."
-              : "Download Instagram Reels in HD MP4, save high-resolution cover photos/images, or extract audio directly."}
+              : activeTab === "instagram"
+              ? "Download Instagram Reels in HD MP4, save high-resolution cover photos/images, or extract audio directly."
+              : "Download Facebook Watch, Reels, and public post videos in HD MP4, save high-res images, or extract MP3 audio."}
           </p>
 
           {/* Input Box Form */}
@@ -466,7 +510,9 @@ export default function Home() {
               placeholder={
                 activeTab === "youtube"
                   ? "Paste YouTube video or Shorts link here"
-                  : "Paste Instagram Reel or Post URL here (e.g. instagram.com/reel/...)"
+                  : activeTab === "instagram"
+                  ? "Paste Instagram Reel or Post URL here (e.g. instagram.com/reel/...)"
+                  : "Paste Facebook Video, Reel, or Post URL here (e.g. fb.watch/... or facebook.com/...)"
               }
               className="flex-1 min-w-0 border-0 bg-transparent px-5 py-2.5 font-medium text-[15px] sm:text-[16px] text-[#1f2a24] placeholder-[#7d8d83] focus:outline-none"
             />
@@ -476,6 +522,8 @@ export default function Home() {
               className={`border-0 cursor-pointer font-semibold text-[15px] px-8 py-3.5 rounded-full text-white transition-all transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2 shadow-md ${
                 activeTab === "instagram"
                   ? "bg-gradient-to-r from-[#df4996] to-[#4f5bd5] hover:opacity-95"
+                  : activeTab === "facebook"
+                  ? "bg-[#1877f2] hover:bg-[#166fe5]"
                   : "bg-[#1f2a24] hover:bg-[#0f1612]"
               }`}
             >

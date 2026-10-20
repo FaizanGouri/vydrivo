@@ -13,6 +13,12 @@ INSTAGRAM_REGEX = re.compile(
     r'^(https?://)?(www\.)?instagram\.com/(reel|reels|p|tv)/([a-zA-Z0-9_-]+)'
 )
 
+# Facebook URL regex matching videos, reels, watch, share, posts
+FACEBOOK_REGEX = re.compile(
+    r'^(https?://)?([a-zA-Z0-9_\-]+\.)?(facebook\.com|fb\.watch|fb\.com)/.+$',
+    re.IGNORECASE
+)
+
 def is_valid_youtube_url(url: str) -> bool:
     if not url:
         return False
@@ -23,8 +29,13 @@ def is_valid_instagram_url(url: str) -> bool:
         return False
     return bool(INSTAGRAM_REGEX.search(url.strip()))
 
+def is_valid_facebook_url(url: str) -> bool:
+    if not url:
+        return False
+    return bool(FACEBOOK_REGEX.search(url.strip()))
+
 def is_valid_supported_url(url: str) -> bool:
-    return is_valid_youtube_url(url) or is_valid_instagram_url(url)
+    return is_valid_youtube_url(url) or is_valid_instagram_url(url) or is_valid_facebook_url(url)
 
 def extract_video_info(url: str) -> Dict[str, Any]:
     """
@@ -39,15 +50,23 @@ def extract_video_info(url: str) -> Dict[str, Any]:
     }
 
     is_insta = is_valid_instagram_url(url)
+    is_fb = is_valid_facebook_url(url)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         
         # Determine title, thumbnail, duration, author
-        title = info.get('title') or (f"Instagram {'Reel' if '/reel' in url else 'Post'}" if is_insta else 'Untitled Video')
+        default_title = (
+            f"Instagram {'Reel' if '/reel' in url else 'Post'}" if is_insta
+            else (f"Facebook {'Reel' if '/reel' in url else 'Video'}" if is_fb else 'Untitled Video')
+        )
+        title = info.get('title') or default_title
         thumbnail = info.get('thumbnail')
         duration = info.get('duration') # in seconds
-        uploader = info.get('uploader') or info.get('channel') or info.get('uploader_id') or ('Instagram Creator' if is_insta else 'Unknown Creator')
+        uploader = (
+            info.get('uploader') or info.get('channel') or info.get('uploader_id')
+            or ('Instagram Creator' if is_insta else ('Facebook Creator' if is_fb else 'Unknown Creator'))
+        )
         view_count = info.get('view_count') or info.get('like_count')
         video_id = info.get('id')
 
@@ -74,6 +93,40 @@ def extract_video_info(url: str) -> Dict[str, Any]:
                     "quality": "Original",
                     "format": "jpg",
                     "label": "Download Cover / Image (JPG)",
+                    "type": "image",
+                    "url": thumbnail
+                })
+        elif is_fb:
+            # Facebook Video / Reel / Post
+            has_sd = any(
+                'sd' in (f.get('format_id') or '').lower() or ((f.get('height') or 0) > 0 and (f.get('height') or 0) < 720)
+                for f in formats_list
+            )
+
+            available_options.append({
+                "quality": "HD",
+                "format": "mp4",
+                "label": "High Quality Video / Reel (HD MP4)",
+                "type": "video"
+            })
+            if has_sd:
+                available_options.append({
+                    "quality": "SD",
+                    "format": "mp4",
+                    "label": "Standard Quality Video (SD MP4)",
+                    "type": "video"
+                })
+            available_options.append({
+                "quality": "320kbps",
+                "format": "mp3",
+                "label": "Extract Audio (MP3 - 320 kbps)",
+                "type": "audio"
+            })
+            if thumbnail:
+                available_options.append({
+                    "quality": "Original",
+                    "format": "jpg",
+                    "label": "Download Image / Cover (JPG)",
                     "type": "image",
                     "url": thumbnail
                 })
@@ -132,7 +185,7 @@ def extract_video_info(url: str) -> Dict[str, Any]:
             "duration_formatted": format_duration(duration) if duration else None,
             "uploader": uploader,
             "view_count": view_count,
-            "platform": "instagram" if is_insta else "youtube",
+            "platform": "instagram" if is_insta else ("facebook" if is_fb else "youtube"),
             "is_short": ("/shorts/" in url) or ("/reel" in url),
             "options": available_options
         }
